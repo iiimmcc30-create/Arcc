@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Lang } from '@/data/mockData';
+import { api } from '@/lib/api';
 
 const t = {
   ar: {
@@ -153,6 +154,8 @@ export default function JoinWizard({ lang, onBack }: Props) {
   const [step, setStep] = useState(0);
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     fullName: '', age: '', country: '', discord: '', email: '',
@@ -169,8 +172,54 @@ export default function JoinWizard({ lang, onBack }: Props) {
   const totalSteps = appType === 'creator' ? 4 : appType === 'team' ? 4 : 5;
   const progress = appType ? Math.round(((step + 1) / totalSteps) * 100) : 0;
 
-  const handleSubmit = () => {
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!appType || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const payload: Record<string, unknown> = {
+        type: appType,
+        name: appType === 'team' ? form.teamName || form.fullName : form.fullName,
+        email: form.email || undefined,
+        discord: form.discord || undefined,
+        country: form.country || undefined,
+        age: form.age ? Number(form.age) : undefined,
+        game: form.game || undefined,
+        role: form.role || undefined,
+        accountId: form.accountId || undefined,
+        uid: form.uid || undefined,
+        rank: form.rank || undefined,
+        achievements: form.achievements || undefined,
+        profileLink: form.profileLink || undefined,
+        message: form.message || undefined,
+        teamName: form.teamName || undefined,
+        captain: form.captain || undefined,
+        playerCount: form.playerCount ? Number(form.playerCount) : undefined,
+        bio: form.bio || undefined,
+        avgViews: form.avgViews || undefined,
+        avgLive: form.avgLive || undefined,
+        platforms: {
+          tiktok: form.tiktokFollowers || '',
+          youtube: form.youtubeFollowers || '',
+          kick: form.kickFollowers || '',
+          twitch: form.twitchFollowers || '',
+        },
+        social: {
+          tiktok: form.tiktok || '',
+          youtube: form.youtube || '',
+          kick: form.kick || '',
+          twitch: form.twitch || '',
+        },
+        platform: form.tiktok ? 'TikTok' : form.youtube ? 'YouTube' : form.twitch ? 'Twitch' : form.kick ? 'Kick' : undefined,
+        followers: form.tiktokFollowers || form.youtubeFollowers || form.twitchFollowers || form.kickFollowers || undefined,
+      };
+      await api.submitApplication(payload);
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Submit failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -368,12 +417,18 @@ export default function JoinWizard({ lang, onBack }: Props) {
               </div>
             )}
 
+            {submitError && (
+              <div className="mt-4 font-mono text-sm text-red-400 border border-red-400/30 bg-red-400/10 p-3">
+                {submitError}
+              </div>
+            )}
             <WizardNav
               step={step} totalSteps={4} isRtl={isRtl}
               onPrev={() => step === 0 ? setAppType(null) : setStep(s => s - 1)}
               onNext={() => step < 3 ? setStep(s => s + 1) : handleSubmit()}
               prevLabel={step === 0 ? (isRtl ? 'تغيير النوع' : 'Change Type') : tr.prev}
-              nextLabel={step === 3 ? tr.submit : tr.next}
+              nextLabel={step === 3 ? (submitting ? '...' : tr.submit) : tr.next}
+              disabled={submitting}
             />
           </div>
         )}
@@ -454,12 +509,18 @@ export default function JoinWizard({ lang, onBack }: Props) {
               </div>
             )}
 
+            {submitError && (
+              <div className="mt-4 font-mono text-sm text-red-400 border border-red-400/30 bg-red-400/10 p-3">
+                {submitError}
+              </div>
+            )}
             <WizardNav
               step={step} totalSteps={4} isRtl={isRtl}
               onPrev={() => step === 0 ? setAppType(null) : setStep(s => s - 1)}
               onNext={() => step < 3 ? setStep(s => s + 1) : handleSubmit()}
               prevLabel={step === 0 ? (isRtl ? 'تغيير النوع' : 'Change Type') : tr.prev}
-              nextLabel={step === 3 ? tr.submit : tr.next}
+              nextLabel={step === 3 ? (submitting ? '...' : tr.submit) : tr.next}
+              disabled={submitting}
             />
           </div>
         )}
@@ -568,6 +629,11 @@ export default function JoinWizard({ lang, onBack }: Props) {
               </div>
             )}
 
+            {submitError && (
+              <div className="mt-4 font-mono text-sm text-red-400 border border-red-400/30 bg-red-400/10 p-3">
+                {submitError}
+              </div>
+            )}
             <WizardNav
               step={step} totalSteps={4} isRtl={isRtl}
               onPrev={() => step === 0 ? setAppType(null) : setStep(s => s - 1)}
@@ -576,8 +642,8 @@ export default function JoinWizard({ lang, onBack }: Props) {
                 step < 3 ? setStep(s => s + 1) : handleSubmit();
               }}
               prevLabel={step === 0 ? (isRtl ? 'تغيير النوع' : 'Change Type') : tr.prev}
-              nextLabel={step === 3 ? tr.submit : tr.next}
-              disabled={step === 0 && !agreed}
+              nextLabel={step === 3 ? (submitting ? '...' : tr.submit) : tr.next}
+              disabled={(step === 0 && !agreed) || submitting}
             />
           </div>
         )}

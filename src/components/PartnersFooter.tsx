@@ -1,6 +1,8 @@
-import { partners } from '@/data/mockData';
+import { partners as fallbackPartners } from '@/data/mockData';
 import arcLogo from '@/imports/IMG_7058-1.jpeg';
 import type { Lang } from '@/data/mockData';
+import { api } from '@/lib/api';
+import { useFetch } from '@/hooks/useFetch';
 
 const t = {
   ar: {
@@ -34,6 +36,23 @@ interface Props { lang: Lang; onJoin: () => void; }
 export default function PartnersFooter({ lang, onJoin }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
+  const { data: partners } = useFetch(api.partners, fallbackPartners as any);
+  const { data: site } = useFetch(api.site, {
+    id: 1,
+    brandName: 'ARC Esports',
+    taglineAr: tr.desc,
+    taglineEn: tr.desc,
+    social: {
+      discord: 'https://discord.gg/arcesports',
+      tiktok: 'https://tiktok.com/@arcesports',
+      youtube: 'https://youtube.com/@arcesports',
+      kick: 'https://kick.com/arcesports',
+      twitch: 'https://twitch.tv/arcesports',
+      email: 'contact@arcesports.com',
+    },
+    stats: {},
+    contactEmail: 'contact@arcesports.com',
+  });
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
@@ -123,15 +142,17 @@ export default function PartnersFooter({ lang, onJoin }: Props) {
               <h4 className="font-display font-800 text-sm text-[#F7941D] uppercase tracking-wider mb-4">{tr.social}</h4>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { name: 'Discord', icon: 'D' },
-                  { name: 'TikTok', icon: 'T' },
-                  { name: 'YouTube', icon: 'Y' },
-                  { name: 'Kick', icon: 'K' },
-                  { name: 'Twitch', icon: 'Tw' },
+                  { name: 'Discord', icon: 'D', href: site.social?.discord },
+                  { name: 'TikTok', icon: 'T', href: site.social?.tiktok },
+                  { name: 'YouTube', icon: 'Y', href: site.social?.youtube },
+                  { name: 'Kick', icon: 'K', href: site.social?.kick },
+                  { name: 'Twitch', icon: 'Tw', href: site.social?.twitch },
                 ].map(soc => (
                   <a
                     key={soc.name}
-                    href="#"
+                    href={soc.href || '#'}
+                    target="_blank"
+                    rel="noreferrer"
                     className="w-9 h-9 glass border border-[#0B3C6D]/50 flex items-center justify-center font-mono text-xs text-white/40 hover:text-[#F7941D] hover:border-[#F7941D]/40 transition-all"
                     title={soc.name}
                   >
@@ -139,6 +160,11 @@ export default function PartnersFooter({ lang, onJoin }: Props) {
                   </a>
                 ))}
               </div>
+              {site.contactEmail && (
+                <a href={`mailto:${site.contactEmail}`} className="block mt-3 font-mono text-xs text-white/40 hover:text-[#F7941D]">
+                  {site.contactEmail}
+                </a>
+              )}
             </div>
           </div>
 

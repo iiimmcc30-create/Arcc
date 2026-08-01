@@ -3,7 +3,10 @@ dist/
 build/
 .cache/
 .env*
+!.env.example
 .vite/
+backend/dist/
+backend/node_modules/
 vite.config.*.timestamp-*
 *.tsbuildinfo
 *-debug.log*

@@ -1,0 +1,10 @@
+export { Game } from './game.entity';
+export { Team } from './team.entity';
+export { Player } from './player.entity';
+export { Creator } from './creator.entity';
+export { Tournament } from './tournament.entity';
+export { News } from './news.entity';
+export { Partner } from './partner.entity';
+export { Application } from './application.entity';
+export { Media } from './media.entity';
+export { SiteSettings } from './site-settings.entity';
