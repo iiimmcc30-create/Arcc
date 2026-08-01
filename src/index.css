@@ -1,0 +1,265 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --color-arc-bg: #0D1117;
+  --color-arc-blue: #0B3C6D;
+  --color-arc-blue2: #174C8F;
+  --color-arc-orange: #F7941D;
+  --color-arc-white: #FFFFFF;
+  --color-arc-glass: rgba(11, 60, 109, 0.25);
+  --color-arc-glass-border: rgba(247, 148, 29, 0.2);
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #0D1117;
+  color: #FFFFFF;
+  font-family: 'Barlow', sans-serif;
+  overflow-x: hidden;
+}
+
+body[dir="rtl"] {
+  font-family: 'Barlow', 'Segoe UI', sans-serif;
+}
+
+/* Hide scrollbar but keep functionality */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0D1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #F7941D;
+  border-radius: 2px;
+}
+
+/* Glass morphism utility */
+.glass {
+  background: rgba(11, 60, 109, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(247, 148, 29, 0.15);
+}
+
+.glass-dark {
+  background: rgba(13, 17, 23, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(11, 60, 109, 0.4);
+}
+
+/* Orange glow */
+.glow-orange {
+  box-shadow: 0 0 30px rgba(247, 148, 29, 0.3);
+}
+
+.glow-orange-sm {
+  box-shadow: 0 0 15px rgba(247, 148, 29, 0.2);
+}
+
+/* Text gradient */
+.text-gradient {
+  background: linear-gradient(135deg, #F7941D, #FFB347);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-blue {
+  background: linear-gradient(135deg, #174C8F, #4A90D9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated grid background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(11, 60, 109, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 60, 109, 0.08) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Section divider */
+.arc-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #F7941D, transparent);
+  opacity: 0.4;
+}
+
+/* Card hover effects */
+.arc-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.arc-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(247, 148, 29, 0.5) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(247, 148, 29, 0.15);
+}
+
+/* Clip path for hero accent */
+.arc-clip {
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+}
+
+/* Orange button */
+.btn-arc {
+  background: linear-gradient(135deg, #F7941D, #E8830D);
+  color: #0D1117;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.75rem 2rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.btn-arc:hover {
+  background: linear-gradient(135deg, #FFB347, #F7941D);
+  box-shadow: 0 0 25px rgba(247, 148, 29, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-arc-outline {
+  background: transparent;
+  color: #F7941D;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.75rem 2rem;
+  border: 1px solid #F7941D;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.btn-arc-outline:hover {
+  background: rgba(247, 148, 29, 0.1);
+  box-shadow: 0 0 20px rgba(247, 148, 29, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Timeline */
+.timeline-line {
+  background: linear-gradient(180deg, #F7941D, #0B3C6D, transparent);
+}
+
+/* Swiper-like scroll */
+.scroll-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Animate */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-orange {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(247, 148, 29, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(247, 148, 29, 0); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.animate-fade-up {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.animate-pulse-orange {
+  animation: pulse-orange 2s infinite;
+}
+
+/* Status badges */
+.badge-active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.badge-pending {
+  background: rgba(247, 148, 29, 0.15);
+  color: #F7941D;
+  border: 1px solid rgba(247, 148, 29, 0.3);
+}
+
+.badge-rejected {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Input styles */
+.arc-input {
+  background: rgba(11, 60, 109, 0.15);
+  border: 1px solid rgba(11, 60, 109, 0.5);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  transition: all 0.2s;
+  font-family: 'Barlow', sans-serif;
+}
+
+.arc-input:focus {
+  outline: none;
+  border-color: #F7941D;
+  background: rgba(11, 60, 109, 0.25);
+  box-shadow: 0 0 0 3px rgba(247, 148, 29, 0.1);
+}
+
+.arc-input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+
+/* Select */
+.arc-select {
+  background: rgba(11, 60, 109, 0.15);
+  border: 1px solid rgba(11, 60, 109, 0.5);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  font-family: 'Barlow', sans-serif;
+}
+
+.arc-select:focus {
+  outline: none;
+  border-color: #F7941D;
+}
+
+.arc-select option {
+  background: #0D1117;
+  color: #fff;
+}

@@ -1,0 +1,11 @@
+{
+  "title": "arc",
+  "description": "This web application enables users to easily create and manage tasks, enhancing productivity and organization for individuals and teams.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
