@@ -34,29 +34,46 @@ import { MerchModule } from './modules/merch/merch.module';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres' as const,
-        host: config.get<string>('DB_HOST', 'localhost'),
-        port: parseInt(config.get<string>('DB_PORT', '5432') ?? '5432', 10),
-        username: config.get<string>('DB_USERNAME', 'arc'),
-        password: config.get<string>('DB_PASSWORD', 'arc_secret'),
-        database: config.get<string>('DB_DATABASE', 'arc_esports'),
-        entities: [
-          Game,
-          Team,
-          Player,
-          Creator,
-          Tournament,
-          News,
-          Partner,
-          Application,
-          Media,
-          SiteSettings,
-          User,
-          MerchItem,
-        ],
-        synchronize: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        const databaseUrl = config.get<string>('DATABASE_URL');
+        const common = {
+          entities: [
+            Game,
+            Team,
+            Player,
+            Creator,
+            Tournament,
+            News,
+            Partner,
+            Application,
+            Media,
+            SiteSettings,
+            User,
+            MerchItem,
+          ],
+          synchronize: true,
+          ssl:
+            config.get('DB_SSL') === 'true' || databaseUrl?.includes('railway')
+              ? { rejectUnauthorized: false }
+              : false,
+        };
+        if (databaseUrl) {
+          return {
+            type: 'postgres' as const,
+            url: databaseUrl,
+            ...common,
+          };
+        }
+        return {
+          type: 'postgres' as const,
+          host: config.get<string>('DB_HOST', 'localhost'),
+          port: parseInt(config.get<string>('DB_PORT', '5432') ?? '5432', 10),
+          username: config.get<string>('DB_USERNAME', 'arc'),
+          password: config.get<string>('DB_PASSWORD', 'arc_secret'),
+          database: config.get<string>('DB_DATABASE', 'arc_esports'),
+          ...common,
+        };
+      },
     }),
     AuthModule,
     GamesModule,

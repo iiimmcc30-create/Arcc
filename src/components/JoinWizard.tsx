@@ -169,7 +169,7 @@ export default function JoinWizard({ lang, onBack }: Props) {
 
   const update = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  const totalSteps = appType === 'creator' ? 4 : appType === 'team' ? 4 : 5;
+  const totalSteps = 4;
   const progress = appType ? Math.round(((step + 1) / totalSteps) * 100) : 0;
 
   const handleSubmit = async () => {
@@ -299,6 +299,8 @@ export default function JoinWizard({ lang, onBack }: Props) {
               ]).map(opt => (
                 <button
                   key={opt.type}
+                  type="button"
+                  data-testid={`join-type-${opt.type}`}
                   onClick={() => { setAppType(opt.type); setStep(0); }}
                   className="arc-card glass border border-[#0B3C6D]/40 hover:border-[#F7941D]/60 p-6 text-center transition-all duration-300 group"
                 >

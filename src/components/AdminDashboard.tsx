@@ -94,6 +94,7 @@ export default function AdminDashboard({ lang, onBack }: Props) {
   }, []);
 
   const load = async () => {
+    if (!getToken()) return;
     setLoading(true);
     try {
       const [dashboard, applications, tournamentsData, newsData, siteData, usersData] = await Promise.all([
@@ -110,13 +111,19 @@ export default function AdminDashboard({ lang, onBack }: Props) {
       setNews(newsData);
       setSite(siteData);
       setUsers(usersData);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (/401|Unauthorized/i.test(message)) {
+        setToken(null);
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user) load();
+    if (user && getToken()) load();
   }, [user]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -138,6 +145,8 @@ export default function AdminDashboard({ lang, onBack }: Props) {
     setToken(null);
     setUser(null);
     setStats(null);
+    setApps([]);
+    setUsers([]);
   };
 
   const updateStatus = async (id: number, status: Status) => {

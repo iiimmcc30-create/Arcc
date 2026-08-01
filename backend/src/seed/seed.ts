@@ -16,13 +16,24 @@ import {
   User,
 } from '../entities';
 
+const databaseUrl = process.env.DATABASE_URL;
 const ds = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  username: process.env.DB_USERNAME || 'arc',
-  password: process.env.DB_PASSWORD || 'arc_secret',
-  database: process.env.DB_DATABASE || 'arc_esports',
+  ...(databaseUrl
+    ? {
+        url: databaseUrl,
+        ssl:
+          process.env.DB_SSL === 'true' || databaseUrl.includes('railway')
+            ? { rejectUnauthorized: false }
+            : undefined,
+      }
+    : {
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432', 10),
+        username: process.env.DB_USERNAME || 'arc',
+        password: process.env.DB_PASSWORD || 'arc_secret',
+        database: process.env.DB_DATABASE || 'arc_esports',
+      }),
   entities: [
     Game,
     Team,

@@ -8,7 +8,8 @@
     "start": "node dist/main.js",
     "start:dev": "ts-node --transpile-only -r dotenv/config src/main.ts",
     "start:prod": "node dist/main.js",
-    "seed": "ts-node --transpile-only -r dotenv/config src/seed/seed.ts"
+    "seed": "ts-node --transpile-only -r dotenv/config src/seed/seed.ts",
+    "seed:prod": "node -r dotenv/config dist/seed/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.28",
