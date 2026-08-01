@@ -8,3 +8,5 @@ export { Partner } from './partner.entity';
 export { Application } from './application.entity';
 export { Media } from './media.entity';
 export { SiteSettings } from './site-settings.entity';
+export { User } from './user.entity';
+export { MerchItem } from './merch.entity';

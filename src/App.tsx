@@ -10,6 +10,7 @@ import ContentCreatorsSection from '@/components/ContentCreatorsSection';
 import TournamentsSection from '@/components/TournamentsSection';
 import NewsSection from '@/components/NewsSection';
 import MediaSection from '@/components/MediaSection';
+import MerchSection from '@/components/MerchSection';
 import PartnersFooter from '@/components/PartnersFooter';
 import JoinWizard from '@/components/JoinWizard';
 import AdminDashboard from '@/components/AdminDashboard';
@@ -74,6 +75,7 @@ export default function App() {
           <ContentCreatorsSection lang={lang} />
           <TournamentsSection lang={lang} />
           <MediaSection lang={lang} />
+          <MerchSection lang={lang} />
           <NewsSection lang={lang} />
           <PartnersFooter lang={lang} onJoin={goToJoin} />
         </main>

@@ -1,16 +1,19 @@
 import 'reflect-metadata';
+import * as bcrypt from 'bcryptjs';
 import { DataSource } from 'typeorm';
 import {
   Application,
   Creator,
   Game,
   Media,
+  MerchItem,
   News,
   Partner,
   Player,
   SiteSettings,
   Team,
   Tournament,
+  User,
 } from '../entities';
 
 const ds = new DataSource({
@@ -31,6 +34,8 @@ const ds = new DataSource({
     Application,
     Media,
     SiteSettings,
+    User,
+    MerchItem,
   ],
   synchronize: true,
 });
@@ -42,7 +47,8 @@ async function seed() {
   await ds.query(`
     TRUNCATE TABLE
       applications, media, players, teams, creators,
-      tournaments, news, partners, games, site_settings
+      tournaments, news, partners, games, site_settings,
+      users, merch_items
     RESTART IDENTITY CASCADE
   `);
 
@@ -519,6 +525,92 @@ async function seed() {
     contactEmail: 'contact@arcesports.com',
   });
 
+  const adminEmail = (process.env.ADMIN_EMAIL || 'madunitesp@gmail.com').toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD || '494930Mm';
+  const adminName = process.env.ADMIN_NAME || 'ARC Admin';
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+  await ds.getRepository(User).save({
+    email: adminEmail,
+    passwordHash,
+    name: adminName,
+    role: 'admin',
+    active: true,
+  });
+
+  await ds.getRepository(MerchItem).save([
+    {
+      name: 'ARC Pro Jersey',
+      nameAr: 'جيرسي ARC الاحترافي',
+      description: 'Official match jersey with ARC crest, breathable fabric, and orange accent panels.',
+      descriptionAr: 'جيرسي المباريات الرسمي بشعار ARC، قماش تنفسي، وتفاصيل برتقالية مميزة.',
+      category: 'jersey',
+      price: '249 SAR',
+      image: 'https://images.unsplash.com/photo-1517649763962-0c623066027b?w=700&h=800&fit=crop&auto=format',
+      colors: ['#0B3C6D', '#0D1117', '#F7941D'],
+      sizes: ['S', 'M', 'L', 'XL', 'XXL'],
+      featured: true,
+      available: true,
+      sortOrder: 1,
+    },
+    {
+      name: 'ARC Away Kit',
+      nameAr: 'طقم ARC الضيف',
+      description: 'Away performance kit with navy base and ARC brand mark embroidery.',
+      descriptionAr: 'طقم الضيف بأساس كحلي وتطريز شعار ARC الرسمي.',
+      category: 'jersey',
+      price: '229 SAR',
+      image: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?w=700&h=800&fit=crop&auto=format',
+      colors: ['#174C8F', '#FFFFFF'],
+      sizes: ['S', 'M', 'L', 'XL'],
+      featured: true,
+      available: true,
+      sortOrder: 2,
+    },
+    {
+      name: 'ARC Legacy Hoodie',
+      nameAr: 'هودي ARC Legacy',
+      description: 'Premium heavyweight hoodie with glass-effect print and orange zipper accents.',
+      descriptionAr: 'هودي فاخر بطبعة زجاجية وتفاصيل سحاب برتقالية.',
+      category: 'hoodie',
+      price: '299 SAR',
+      image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=700&h=800&fit=crop&auto=format',
+      colors: ['#0D1117', '#0B3C6D'],
+      sizes: ['M', 'L', 'XL', 'XXL'],
+      featured: true,
+      available: true,
+      sortOrder: 3,
+    },
+    {
+      name: 'ARC Cap',
+      nameAr: 'قبعة ARC',
+      description: 'Structured cap with embossed ARC logo and moisture-wicking sweatband.',
+      descriptionAr: 'قبعة منظمة بشعار ARC البارز وشريط داخلي ماص للرطوبة.',
+      category: 'cap',
+      price: '99 SAR',
+      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=700&h=800&fit=crop&auto=format',
+      colors: ['#0B3C6D', '#F7941D'],
+      sizes: ['One Size'],
+      featured: false,
+      available: true,
+      sortOrder: 4,
+    },
+    {
+      name: 'ARC Wristband Set',
+      nameAr: 'سوارات ARC',
+      description: 'Dual wristband set in official ARC blue and orange for match day.',
+      descriptionAr: 'طقم سوارين بألوان ARC الرسمية للأزرق والبرتقالي.',
+      category: 'accessory',
+      price: '49 SAR',
+      image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=700&h=800&fit=crop&auto=format',
+      colors: ['#0B3C6D', '#F7941D'],
+      sizes: ['One Size'],
+      featured: false,
+      available: true,
+      sortOrder: 5,
+    },
+  ]);
+
+  console.log(`Admin seeded: ${adminEmail}`);
   console.log('Seed completed successfully');
   await ds.destroy();
 }

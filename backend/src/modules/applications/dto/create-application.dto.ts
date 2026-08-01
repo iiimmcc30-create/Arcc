@@ -1,8 +1,8 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsIn, IsInt, IsObject, IsOptional, IsString, Min } from 'class-validator';
+import { IsEmail, IsIn, IsInt, IsObject, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
 
 const emptyToUndefined = ({ value }: { value: unknown }) =>
-  value === '' || value === null ? undefined : value;
+  value === '' || value === null || value === undefined ? undefined : value;
 
 export class CreateApplicationDto {
   @IsIn(['player', 'team', 'creator'])
@@ -11,8 +11,8 @@ export class CreateApplicationDto {
   @IsString()
   name: string;
 
-  @IsOptional()
   @Transform(emptyToUndefined)
+  @ValidateIf((_, v) => v !== undefined)
   @IsEmail()
   email?: string;
 

@@ -177,27 +177,28 @@ export default function JoinWizard({ lang, onBack }: Props) {
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const clean = (value: string) => value.trim() || undefined;
       const payload: Record<string, unknown> = {
         type: appType,
-        name: appType === 'team' ? form.teamName || form.fullName : form.fullName,
-        email: form.email || undefined,
-        discord: form.discord || undefined,
-        country: form.country || undefined,
+        name: clean(appType === 'team' ? form.teamName || form.fullName : form.fullName) || 'Applicant',
+        email: clean(form.email),
+        discord: clean(form.discord),
+        country: clean(form.country),
         age: form.age ? Number(form.age) : undefined,
-        game: form.game || undefined,
-        role: form.role || undefined,
-        accountId: form.accountId || undefined,
-        uid: form.uid || undefined,
-        rank: form.rank || undefined,
-        achievements: form.achievements || undefined,
-        profileLink: form.profileLink || undefined,
-        message: form.message || undefined,
-        teamName: form.teamName || undefined,
-        captain: form.captain || undefined,
+        game: clean(form.game),
+        role: clean(form.role),
+        accountId: clean(form.accountId),
+        uid: clean(form.uid),
+        rank: clean(form.rank),
+        achievements: clean(form.achievements),
+        profileLink: clean(form.profileLink),
+        message: clean(form.message),
+        teamName: clean(form.teamName),
+        captain: clean(form.captain),
         playerCount: form.playerCount ? Number(form.playerCount) : undefined,
-        bio: form.bio || undefined,
-        avgViews: form.avgViews || undefined,
-        avgLive: form.avgLive || undefined,
+        bio: clean(form.bio),
+        avgViews: clean(form.avgViews),
+        avgLive: clean(form.avgLive),
         platforms: {
           tiktok: form.tiktokFollowers || '',
           youtube: form.youtubeFollowers || '',
@@ -211,8 +212,11 @@ export default function JoinWizard({ lang, onBack }: Props) {
           twitch: form.twitch || '',
         },
         platform: form.tiktok ? 'TikTok' : form.youtube ? 'YouTube' : form.twitch ? 'Twitch' : form.kick ? 'Kick' : undefined,
-        followers: form.tiktokFollowers || form.youtubeFollowers || form.twitchFollowers || form.kickFollowers || undefined,
+        followers: clean(form.tiktokFollowers || form.youtubeFollowers || form.twitchFollowers || form.kickFollowers),
       };
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined) delete payload[key];
+      });
       await api.submitApplication(payload);
       setSubmitted(true);
     } catch (err) {

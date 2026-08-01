@@ -6,12 +6,14 @@ import {
   Creator,
   Game,
   Media,
+  MerchItem,
   News,
   Partner,
   Player,
   SiteSettings,
   Team,
   Tournament,
+  User,
 } from './entities';
 import { GamesModule } from './modules/games/games.module';
 import { TeamsModule } from './modules/teams/teams.module';
@@ -24,6 +26,8 @@ import { ApplicationsModule } from './modules/applications/applications.module';
 import { MediaModule } from './modules/media/media.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SiteModule } from './modules/site/site.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { MerchModule } from './modules/merch/merch.module';
 
 @Module({
   imports: [
@@ -48,10 +52,13 @@ import { SiteModule } from './modules/site/site.module';
           Application,
           Media,
           SiteSettings,
+          User,
+          MerchItem,
         ],
         synchronize: true,
       }),
     }),
+    AuthModule,
     GamesModule,
     TeamsModule,
     PlayersModule,
@@ -63,6 +70,7 @@ import { SiteModule } from './modules/site/site.module';
     MediaModule,
     AdminModule,
     SiteModule,
+    MerchModule,
   ],
 })
 export class AppModule {}
