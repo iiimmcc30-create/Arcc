@@ -1,5 +1,7 @@
-import { games } from '@/data/mockData';
+import { games as fallbackGames } from '@/data/mockData';
 import type { Lang } from '@/data/mockData';
+import { api } from '@/lib/api';
+import { useFetch } from '@/hooks/useFetch';
 
 const t = {
   ar: { title: 'الألعاب', subtitle: 'ساحاتنا التنافسية', players: 'لاعب', tournaments: 'بطولة', viewTeam: 'عرض الفريق' },
@@ -11,6 +13,7 @@ interface Props { lang: Lang; }
 export default function GamesSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
+  const { data: games, loading } = useFetch(api.games, fallbackGames as any);
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
@@ -31,6 +34,8 @@ export default function GamesSection({ lang }: Props) {
           </div>
           <h2 className="font-display font-900 text-5xl md:text-6xl text-white uppercase">{tr.subtitle}</h2>
         </div>
+
+        {loading && <div className="text-center font-mono text-sm text-white/40 mb-6">Loading...</div>}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {games.map((game) => (

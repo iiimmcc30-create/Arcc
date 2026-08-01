@@ -1,5 +1,7 @@
-import { teams } from '@/data/mockData';
+import { teams as fallbackTeams } from '@/data/mockData';
 import type { Lang } from '@/data/mockData';
+import { api } from '@/lib/api';
+import { useFetch } from '@/hooks/useFetch';
 
 const t = {
   ar: { title: 'الفرق', subtitle: 'فرق ARC الرسمية', captain: 'القائد', achievements: 'الإنجازات', tournaments: 'البطولات', players: 'لاعب', details: 'عرض التفاصيل' },
@@ -11,6 +13,7 @@ interface Props { lang: Lang; }
 export default function TeamsSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
+  const { data: teams } = useFetch(api.teams, fallbackTeams as any);
 
   return (
     <section id="teams" dir={isRtl ? 'rtl' : 'ltr'} className="relative py-24 overflow-hidden">

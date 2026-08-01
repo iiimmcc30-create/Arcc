@@ -1,5 +1,7 @@
-import { players } from '@/data/mockData';
+import { players as fallbackPlayers } from '@/data/mockData';
 import type { Lang } from '@/data/mockData';
+import { api } from '@/lib/api';
+import { useFetch } from '@/hooks/useFetch';
 
 const t = {
   ar: { title: 'اللاعبون', subtitle: 'نجوم ARC Esports', role: 'المركز', rank: 'الرتبة', achievements: 'الإنجازات' },
@@ -11,6 +13,7 @@ interface Props { lang: Lang; }
 export default function PlayersSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
+  const { data: players } = useFetch(api.players, fallbackPlayers as any);
 
   return (
     <section id="players" dir={isRtl ? 'rtl' : 'ltr'} className="relative py-24 overflow-hidden">

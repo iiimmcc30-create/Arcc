@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { tournaments } from '@/data/mockData';
+import { tournaments as fallbackTournaments } from '@/data/mockData';
 import type { Lang } from '@/data/mockData';
+import { api } from '@/lib/api';
+import { useFetch } from '@/hooks/useFetch';
 
 const t = {
   ar: {
@@ -23,6 +25,7 @@ export default function TournamentsSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
   const [filter, setFilter] = useState<'all' | 'active' | 'upcoming' | 'past'>('all');
+  const { data: tournaments } = useFetch(api.tournaments, fallbackTournaments as any);
 
   const filtered = filter === 'all' ? tournaments : tournaments.filter(t2 => t2.status === filter);
 
