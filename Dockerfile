@@ -3,6 +3,7 @@ FROM node:22-bookworm-slim AS frontend
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
+COPY backend/.npmrc ./.npmrc
 RUN pnpm config set minimum-release-age 0
 RUN pnpm install --frozen-lockfile
 COPY index.html vite.config.ts tsconfig.json ./
@@ -17,6 +18,7 @@ FROM node:22-bookworm-slim AS backend
 WORKDIR /app/backend
 RUN corepack enable
 COPY backend/package.json backend/pnpm-lock.yaml ./
+COPY backend/.npmrc ./.npmrc
 RUN pnpm config set minimum-release-age 0
 RUN pnpm install --frozen-lockfile
 COPY backend/tsconfig.json ./
@@ -29,6 +31,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN corepack enable
 COPY backend/package.json backend/pnpm-lock.yaml ./
+COPY backend/.npmrc ./.npmrc
 RUN pnpm config set minimum-release-age 0
 RUN pnpm install --frozen-lockfile --prod
 COPY --from=backend /app/backend/dist ./dist
