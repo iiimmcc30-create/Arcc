@@ -15,6 +15,10 @@ import {
   Tournament,
   User,
 } from './entities';
+import {
+  describeDatabaseTarget,
+  resolvePostgresSsl,
+} from './database/postgres-ssl';
 import { GamesModule } from './modules/games/games.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { PlayersModule } from './modules/players/players.module';
@@ -28,6 +32,8 @@ import { AdminModule } from './modules/admin/admin.module';
 import { SiteModule } from './modules/site/site.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MerchModule } from './modules/merch/merch.module';
+import { HealthModule } from './modules/health/health.module';
+import { SeedModule } from './modules/seed/seed.module';
 
 @Module({
   imports: [
@@ -36,6 +42,19 @@ import { MerchModule } from './modules/merch/merch.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const databaseUrl = config.get<string>('DATABASE_URL');
+        const isProd = config.get<string>('NODE_ENV') === 'production';
+
+        if (isProd && !databaseUrl) {
+          throw new Error(
+            'DATABASE_URL is required in production. Link the Railway Postgres plugin and set DATABASE_URL=${{Postgres.DATABASE_URL}} on this service.',
+          );
+        }
+
+        const ssl = resolvePostgresSsl(databaseUrl, config.get<string>('DB_SSL'));
+        console.log(
+          `[db] target=${describeDatabaseTarget(databaseUrl)} ssl=${ssl ? 'on' : 'off'}`,
+        );
+
         const common = {
           entities: [
             Game,
@@ -52,11 +71,11 @@ import { MerchModule } from './modules/merch/merch.module';
             MerchItem,
           ],
           synchronize: true,
-          ssl:
-            config.get('DB_SSL') === 'true' || databaseUrl?.includes('railway')
-              ? { rejectUnauthorized: false }
-              : false,
+          ssl,
+          retryAttempts: 10,
+          retryDelay: 3000,
         };
+
         if (databaseUrl) {
           return {
             type: 'postgres' as const,
@@ -64,6 +83,7 @@ import { MerchModule } from './modules/merch/merch.module';
             ...common,
           };
         }
+
         return {
           type: 'postgres' as const,
           host: config.get<string>('DB_HOST', 'localhost'),
@@ -75,6 +95,8 @@ import { MerchModule } from './modules/merch/merch.module';
         };
       },
     }),
+    HealthModule,
+    SeedModule,
     AuthModule,
     GamesModule,
     TeamsModule,

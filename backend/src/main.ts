@@ -34,9 +34,13 @@ async function bootstrap() {
     });
   }
 
-  const port = process.env.PORT || 3001;
+  // Railway injects PORT — never hardcode it in service variables.
+  const port = Number(process.env.PORT) || 3001;
   await app.listen(port, '0.0.0.0');
   console.log(`ARC Esports API running on http://0.0.0.0:${port}/api`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Fatal bootstrap error:', err);
+  process.exit(1);
+});

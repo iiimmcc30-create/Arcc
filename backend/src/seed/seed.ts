@@ -15,17 +15,16 @@ import {
   Tournament,
   User,
 } from '../entities';
+import { resolvePostgresSsl } from '../database/postgres-ssl';
 
 const databaseUrl = process.env.DATABASE_URL;
+const ssl = resolvePostgresSsl(databaseUrl, process.env.DB_SSL);
 const ds = new DataSource({
   type: 'postgres',
   ...(databaseUrl
     ? {
         url: databaseUrl,
-        ssl:
-          process.env.DB_SSL === 'true' || databaseUrl.includes('railway')
-            ? { rejectUnauthorized: false }
-            : undefined,
+        ssl: ssl || undefined,
       }
     : {
         host: process.env.DB_HOST || 'localhost',
@@ -33,6 +32,7 @@ const ds = new DataSource({
         username: process.env.DB_USERNAME || 'arc',
         password: process.env.DB_PASSWORD || 'arc_secret',
         database: process.env.DB_DATABASE || 'arc_esports',
+        ssl: ssl || undefined,
       }),
   entities: [
     Game,
@@ -51,19 +51,29 @@ const ds = new DataSource({
   synchronize: true,
 });
 
-async function seed() {
-  await ds.initialize();
-  console.log('Connected to PostgreSQL');
+export async function runSeed(
+  dataSource: DataSource,
+  options: { truncate?: boolean; onlyIfEmpty?: boolean } = {},
+): Promise<{ seeded: boolean }> {
+  if (options.onlyIfEmpty) {
+    const existing = await dataSource.getRepository(Game).count();
+    if (existing > 0) {
+      console.log(`[seed] skipped — database already has ${existing} games`);
+      return { seeded: false };
+    }
+  }
 
-  await ds.query(`
-    TRUNCATE TABLE
-      applications, media, players, teams, creators,
-      tournaments, news, partners, games, site_settings,
-      users, merch_items
-    RESTART IDENTITY CASCADE
-  `);
+  if (options.truncate) {
+    await dataSource.query(`
+      TRUNCATE TABLE
+        applications, media, players, teams, creators,
+        tournaments, news, partners, games, site_settings,
+        users, merch_items
+      RESTART IDENTITY CASCADE
+    `);
+  }
 
-  const games = await ds.getRepository(Game).save([
+  const games = await dataSource.getRepository(Game).save([
     {
       slug: 'pubg',
       name: 'PUBG MOBILE',
@@ -96,7 +106,7 @@ async function seed() {
     },
   ]);
 
-  const teams = await ds.getRepository(Team).save([
+  const teams = await dataSource.getRepository(Team).save([
     {
       name: 'ARC PUBG Alpha',
       game: 'PUBG MOBILE',
@@ -143,7 +153,7 @@ async function seed() {
     },
   ]);
 
-  await ds.getRepository(Player).save([
+  await dataSource.getRepository(Player).save([
     {
       name: 'XShadow',
       game: 'PUBG MOBILE',
@@ -236,7 +246,7 @@ async function seed() {
     },
   ]);
 
-  await ds.getRepository(Creator).save([
+  await dataSource.getRepository(Creator).save([
     {
       name: 'TurboGamer',
       nameAr: 'تيربو جيمر',
@@ -284,7 +294,7 @@ async function seed() {
     },
   ]);
 
-  await ds.getRepository(Tournament).save([
+  await dataSource.getRepository(Tournament).save([
     {
       name: 'ARC Open Championship S3',
       nameAr: 'بطولة ARC المفتوحة الموسم 3',
@@ -331,7 +341,7 @@ async function seed() {
     },
   ]);
 
-  await ds.getRepository(News).save([
+  await dataSource.getRepository(News).save([
     {
       title: 'ARC Esports تتوج بلقب بطولة الخليج 2024',
       titleEn: 'ARC Esports Wins Gulf Championship 2024',
@@ -364,7 +374,7 @@ async function seed() {
     },
   ]);
 
-  await ds.getRepository(Partner).save([
+  await dataSource.getRepository(Partner).save([
     { name: 'NVIDIA', logo: 'NVIDIA', url: 'https://nvidia.com', sortOrder: 1 },
     { name: 'STC', logo: 'STC', url: 'https://stc.com.sa', sortOrder: 2 },
     { name: 'Razer', logo: 'RAZER', url: 'https://razer.com', sortOrder: 3 },
@@ -373,7 +383,7 @@ async function seed() {
     { name: 'Monster Energy', logo: 'MONSTER', url: 'https://monsterenergy.com', sortOrder: 6 },
   ]);
 
-  await ds.getRepository(Media).save([
+  await dataSource.getRepository(Media).save([
     {
       title: 'Gulf Championship Final Highlights',
       titleAr: 'أبرز لقطات نهائي بطولة الخليج',
@@ -408,7 +418,7 @@ async function seed() {
     },
   ]);
 
-  await ds.getRepository(Application).save([
+  await dataSource.getRepository(Application).save([
     {
       type: 'player',
       status: 'pending',
@@ -520,7 +530,7 @@ async function seed() {
     },
   ]);
 
-  await ds.getRepository(SiteSettings).save({
+  await dataSource.getRepository(SiteSettings).save({
     brandName: 'ARC Esports',
     taglineAr: 'نصنع الأبطال… ونبني مستقبل صناع المحتوى.',
     taglineEn: 'We create champions… and build the future of content creators.',
@@ -540,7 +550,7 @@ async function seed() {
   const adminPassword = process.env.ADMIN_PASSWORD || '494930Mm';
   const adminName = process.env.ADMIN_NAME || 'ARC Admin';
   const passwordHash = await bcrypt.hash(adminPassword, 10);
-  await ds.getRepository(User).save({
+  await dataSource.getRepository(User).save({
     email: adminEmail,
     passwordHash,
     name: adminName,
@@ -548,7 +558,7 @@ async function seed() {
     active: true,
   });
 
-  await ds.getRepository(MerchItem).save([
+  await dataSource.getRepository(MerchItem).save([
     {
       name: 'ARC Pro Jersey',
       nameAr: 'جيرسي ARC الاحترافي',
@@ -623,10 +633,25 @@ async function seed() {
 
   console.log(`Admin seeded: ${adminEmail}`);
   console.log('Seed completed successfully');
+  return { seeded: true };
+}
+
+async function seedCli() {
+  await ds.initialize();
+  console.log('Connected to PostgreSQL');
+  await runSeed(ds, { truncate: true });
   await ds.destroy();
 }
 
-seed().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Only run when executed directly (node dist/seed/seed.js)
+const isDirect =
+  typeof require !== 'undefined' &&
+  typeof module !== 'undefined' &&
+  require.main === module;
+
+if (isDirect) {
+  seedCli().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
