@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "ARC Esports NestJS API with PostgreSQL",
+  "packageManager": "pnpm@10.34.3",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
