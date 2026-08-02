@@ -33,6 +33,7 @@ import { SiteModule } from './modules/site/site.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MerchModule } from './modules/merch/merch.module';
 import { HealthModule } from './modules/health/health.module';
+import { SeedModule } from './modules/seed/seed.module';
 
 @Module({
   imports: [
@@ -95,6 +96,7 @@ import { HealthModule } from './modules/health/health.module';
       },
     }),
     HealthModule,
+    SeedModule,
     AuthModule,
     GamesModule,
     TeamsModule,

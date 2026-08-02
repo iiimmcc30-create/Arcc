@@ -25,22 +25,25 @@ NODE_ENV=production
 | Variable | Notes |
 | --- | --- |
 | `DATABASE_URL` | **Required.** Use the variable reference `${{Postgres.DATABASE_URL}}` so Railway injects the private network URL. |
-| `DB_SSL` | **Leave unset** when using the private URL (`*.railway.internal`). Set `DB_SSL=true` only if you paste the **public** proxy URL (`*.rlwy.net`). |
+| `DB_SSL` | **Leave unset** when using the private URL (`*.railway.internal`). The app ignores `DB_SSL=true` on private hosts automatically. Set `DB_SSL=true` only for public `*.rlwy.net` URLs. |
 | `PORT` | **Do not set.** Railway injects `PORT` automatically; the app listens on it. |
 | `JWT_SECRET` | Required for admin login tokens. |
-| `ADMIN_*` | Used by the seed script to create the first admin user. |
+| `ADMIN_*` | Used by auto-seed / seed script to create the first admin user. |
+| `AUTO_SEED` | Defaults to on in production. Seeds content + admin when the DB is empty. Set `AUTO_SEED=false` to disable. |
 
-Wrong SSL settings are the most common deploy crash after a successful Docker build: the container starts, TypeORM cannot open Postgres, healthcheck fails, Railway marks the deployment failed.
+Wrong SSL settings used to be the most common deploy crash; the app now refuses TLS on `*.railway.internal` even if `DB_SSL=true` was set by mistake.
 
 ## 3) First seed
 
-After the first successful deploy, open the Railway service shell and run:
+Production boots auto-seed when the database is empty (uses `ADMIN_EMAIL` / `ADMIN_PASSWORD`).
+
+To re-seed manually (truncates all tables):
 
 ```bash
 node dist/seed/seed.js
 ```
 
-Or seed from your machine against Railway Postgres (use the **public** URL + SSL):
+Or from your machine against Railway Postgres (use the **public** URL + SSL):
 
 ```bash
 cd backend
