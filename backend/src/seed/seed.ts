@@ -15,17 +15,16 @@ import {
   Tournament,
   User,
 } from '../entities';
+import { resolvePostgresSsl } from '../database/postgres-ssl';
 
 const databaseUrl = process.env.DATABASE_URL;
+const ssl = resolvePostgresSsl(databaseUrl, process.env.DB_SSL);
 const ds = new DataSource({
   type: 'postgres',
   ...(databaseUrl
     ? {
         url: databaseUrl,
-        ssl:
-          process.env.DB_SSL === 'true' || databaseUrl.includes('railway')
-            ? { rejectUnauthorized: false }
-            : undefined,
+        ssl: ssl || undefined,
       }
     : {
         host: process.env.DB_HOST || 'localhost',
@@ -33,6 +32,7 @@ const ds = new DataSource({
         username: process.env.DB_USERNAME || 'arc',
         password: process.env.DB_PASSWORD || 'arc_secret',
         database: process.env.DB_DATABASE || 'arc_esports',
+        ssl: ssl || undefined,
       }),
   entities: [
     Game,
