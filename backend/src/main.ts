@@ -59,6 +59,9 @@ function startDiagnosticServer(err: unknown) {
 
 async function createApp() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Allow portrait/data-URL images from admin uploads in JSON bodies.
+  app.useBodyParser('json', { limit: '12mb' });
+  app.useBodyParser('urlencoded', { limit: '12mb', extended: true });
   app.enableCors({
     origin: true,
     credentials: true,

@@ -42,7 +42,7 @@ export class Player {
   @Column()
   rank: string;
 
-  @Column()
+  @Column({ type: 'text', default: '' })
   image: string;
 
   @Column({ type: 'text', array: true, default: '{}' })

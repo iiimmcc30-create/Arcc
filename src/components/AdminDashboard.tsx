@@ -19,6 +19,7 @@ import {
   type Team,
   type Tournament,
 } from "@/lib/api";
+import { fileToDataUrl } from "@/lib/imageUpload";
 
 type Section =
   | "dashboard"
@@ -48,9 +49,9 @@ const t = {
     dashboard: "الرئيسية",
     applications: "الطلبات",
     games: "الألعاب",
-    rosterPlayers: "اللاعبون",
+    rosterPlayers: "نجوم ARC",
     rosterTeams: "الفرق",
-    creators: "صناع المحتوى",
+    creators: "أصوات ARC",
     tournaments: "البطولات",
     news: "الأخبار",
     media: "الوسائط",
@@ -138,6 +139,9 @@ const t = {
     price: "السعر",
     category: "التصنيف",
     image: "الصورة",
+    uploadImage: "رفع صورة من الجهاز",
+    imageUrlHint: "أو الصق رابط صورة",
+    imagePreview: "معاينة",
     logo: "الشعار",
     url: "الرابط",
     featured: "مميز",
@@ -171,9 +175,9 @@ const t = {
     dashboard: "Dashboard",
     applications: "Applications",
     games: "Games",
-    rosterPlayers: "Players",
+    rosterPlayers: "ARC Stars",
     rosterTeams: "Teams",
-    creators: "Content Creators",
+    creators: "ARC Voices",
     tournaments: "Tournaments",
     news: "News",
     media: "Media",
@@ -261,6 +265,9 @@ const t = {
     price: "Price",
     category: "Category",
     image: "Image",
+    uploadImage: "Upload image from device",
+    imageUrlHint: "Or paste an image URL",
+    imagePreview: "Preview",
     logo: "Logo",
     url: "URL",
     featured: "Featured",
@@ -805,6 +812,56 @@ export default function AdminDashboard({ lang, onBack }: Props) {
     </div>
   );
 
+  const renderImageField = (label: string, key: string) => {
+    if (!modal) return null;
+    const val = String(modal.form[key] ?? "");
+    return (
+      <div key={key} className="space-y-2">
+        <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{label}</label>
+        {val ? (
+          <div className="relative w-full max-w-[220px] aspect-square overflow-hidden border border-[#0B3C6D]/50 bg-[#0B3C6D]/10">
+            <img src={val} alt={tr.imagePreview} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-full max-w-[220px] aspect-square border border-dashed border-[#0B3C6D]/50 flex items-center justify-center font-mono text-[10px] text-white/30 uppercase">
+            {tr.imagePreview}
+          </div>
+        )}
+        <label className="inline-flex items-center gap-2 cursor-pointer font-mono text-xs text-[#F7941D] border border-[#F7941D]/40 px-3 py-2 hover:bg-[#F7941D]/10">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const dataUrl = await fileToDataUrl(file);
+                setField(key, dataUrl);
+                showSuccess(isRtl ? "تم رفع الصورة" : "Image uploaded");
+              } catch (err) {
+                setToast({
+                  type: "error",
+                  msg: err instanceof Error ? err.message : "Upload failed",
+                });
+              } finally {
+                e.target.value = "";
+              }
+            }}
+          />
+          {tr.uploadImage}
+        </label>
+        <input
+          type="text"
+          className="arc-input"
+          placeholder={tr.imageUrlHint}
+          value={val.startsWith("data:") ? "" : val}
+          onChange={(e) => setField(key, e.target.value)}
+        />
+      </div>
+    );
+  };
+
   const renderFormField = (
     label: string,
     key: string,
@@ -878,6 +935,7 @@ export default function AdminDashboard({ lang, onBack }: Props) {
         break;
       case "rosterPlayers":
         fields.push(
+          renderImageField(tr.image, "image"),
           renderFormField(tr.name, "name"),
           renderFormField(tr.game, "game"),
           renderFormField("Team ID", "teamId", "number"),
@@ -886,18 +944,17 @@ export default function AdminDashboard({ lang, onBack }: Props) {
           renderFormField(tr.flag, "flag"),
           renderFormField(tr.role, "role"),
           renderFormField(tr.rank, "rank"),
-          renderFormField(tr.image, "image"),
           renderFormField(tr.achievements + " AR", "achievementsCsv"),
           renderFormField(tr.achievements + " EN", "achievementsEnCsv"),
-          renderFormField(tr.social + " (key: val)", "socialCsv"),
+          renderFormField(tr.social + " (twitter/instagram: url)", "socialCsv"),
         );
         break;
       case "rosterTeams":
         fields.push(
+          renderImageField(tr.logo, "logo"),
           renderFormField(tr.name, "name"),
           renderFormField(tr.game, "game"),
           renderFormField("Game ID", "gameId", "number"),
-          renderFormField(tr.logo, "logo"),
           renderFormField(tr.players, "players", "number"),
           renderFormField(tr.captain, "captain"),
           renderFormField(tr.achievements + " AR", "achievementsCsv"),
@@ -907,14 +964,14 @@ export default function AdminDashboard({ lang, onBack }: Props) {
         break;
       case "creators":
         fields.push(
+          renderImageField(tr.image, "image"),
           renderFormField(tr.name, "name"),
           renderFormField(tr.titleAr, "nameAr"),
           renderFormField(tr.bio, "bio", "textarea"),
           renderFormField(tr.bio + " EN", "bioEn", "textarea"),
-          renderFormField(tr.image, "image"),
           renderFormField(tr.verified, "verified", "checkbox"),
-          renderFormField(tr.platforms + " (key: val)", "platformsCsv"),
-          renderFormField(tr.social + " (key: val)", "socialCsv"),
+          renderFormField(tr.platforms + " (tiktok/youtube: count)", "platformsCsv"),
+          renderFormField(tr.social + " (tiktok/youtube: url)", "socialCsv"),
         );
         break;
       case "tournaments":
@@ -1265,8 +1322,13 @@ export default function AdminDashboard({ lang, onBack }: Props) {
               }
             >
               <DataTable
-                headers={[tr.name, tr.game, tr.role, tr.country, tr.actions]}
+                headers={[tr.image, tr.name, tr.game, tr.role, tr.country, tr.actions]}
                 rows={rosterPlayers.map((p) => [
+                  p.image ? (
+                    <img src={p.image} alt={p.name} className="w-10 h-10 object-cover border border-[#0B3C6D]/40" />
+                  ) : (
+                    <span className="text-white/20">—</span>
+                  ),
                   p.name,
                   p.game,
                   p.role,
@@ -1310,8 +1372,13 @@ export default function AdminDashboard({ lang, onBack }: Props) {
               }
             >
               <DataTable
-                headers={[tr.name, tr.game, tr.captain, tr.players, tr.actions]}
+                headers={[tr.logo, tr.name, tr.game, tr.captain, tr.players, tr.actions]}
                 rows={rosterTeams.map((team) => [
+                  team.logo ? (
+                    <img src={team.logo} alt={team.name} className="w-10 h-10 object-cover border border-[#0B3C6D]/40" />
+                  ) : (
+                    <span className="text-white/20">—</span>
+                  ),
                   team.name,
                   team.game,
                   team.captain,
@@ -1334,7 +1401,7 @@ export default function AdminDashboard({ lang, onBack }: Props) {
             </ContentSection>
           )}
 
-          {/* Creators */}
+          {/* Creators / ARC Voices */}
           {section === "creators" && (
             <ContentSection
               loading={loading}
@@ -1354,9 +1421,18 @@ export default function AdminDashboard({ lang, onBack }: Props) {
               }
             >
               <DataTable
-                headers={[tr.name, tr.verified, tr.actions]}
+                headers={[tr.image, tr.name, tr.verified, tr.actions]}
                 rows={creators.map((c) => [
-                  lang === "ar" ? c.nameAr : c.name,
+                  c.image ? (
+                    <img
+                      src={c.image}
+                      alt={c.name}
+                      className="w-10 h-10 rounded-full object-cover border border-[#F7941D]/50"
+                    />
+                  ) : (
+                    <span className="text-white/20">—</span>
+                  ),
+                  lang === "ar" ? c.nameAr || c.name : c.name,
                   c.verified ? "✓" : "—",
                   renderTableActions("creators", c.id, () =>
                     openModal(
