@@ -31,7 +31,10 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN npm install -g pnpm@10.34.3
+# Persist media on a Railway volume mounted at /data (see RAILWAY.md).
+ENV UPLOAD_DIR=/data/uploads
+RUN npm install -g pnpm@10.34.3 \
+  && mkdir -p /data/uploads /app/uploads
 COPY backend/package.json backend/pnpm-lock.yaml ./
 COPY backend/.npmrc ./.npmrc
 RUN pnpm install --frozen-lockfile --prod
