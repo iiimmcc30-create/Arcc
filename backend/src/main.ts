@@ -9,6 +9,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { listPresentDbEnvKeys } from './database/resolve-database-url';
 
+const BOOT_TIMEOUT_MS = 45_000;
+
 function startDiagnosticServer(err: unknown) {
   const port = Number(process.env.PORT) || 3001;
   const message = err instanceof Error ? err.message : String(err);
@@ -19,11 +21,13 @@ function startDiagnosticServer(err: unknown) {
     database: 'down',
     error: message,
     dbEnvKeys: present,
-    hint: 'Set DATABASE_URL=${{Postgres.DATABASE_URL}} on this Railway service (Variables). Do not set PORT or DB_SSL for the private URL.',
+    hint: 'Set DATABASE_URL=${{Postgres.DATABASE_URL}} on this Railway service (Variables). Do not set PORT or DB_SSL for the private URL. Ensure a Postgres plugin exists in the same environment.',
     time: new Date().toISOString(),
   };
 
-  console.error('Fatal bootstrap error — starting diagnostic HTTP server so Railway healthcheck can surface it.');
+  console.error(
+    'Fatal bootstrap error — starting diagnostic HTTP server so Railway healthcheck can surface it.',
+  );
   console.error(payload);
 
   const server = createServer((req, res) => {
@@ -53,7 +57,7 @@ function startDiagnosticServer(err: unknown) {
   });
 }
 
-async function bootstrap() {
+async function createApp() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors({
     origin: true,
@@ -79,6 +83,22 @@ async function bootstrap() {
       return res.sendFile(join(publicDir, 'index.html'));
     });
   }
+  return app;
+}
+
+async function bootstrap() {
+  const app = await Promise.race([
+    createApp(),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(
+          new Error(
+            `Nest bootstrap exceeded ${BOOT_TIMEOUT_MS}ms (likely Postgres unreachable). Check DATABASE_URL and that the Postgres plugin is running in this Railway environment.`,
+          ),
+        );
+      }, BOOT_TIMEOUT_MS);
+    }),
+  ]);
 
   // Railway injects PORT — never hardcode it in service variables.
   const port = Number(process.env.PORT) || 3001;

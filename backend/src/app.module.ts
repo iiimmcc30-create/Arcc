@@ -78,9 +78,12 @@ import { SeedModule } from './modules/seed/seed.module';
           ],
           synchronize: true,
           ssl,
-          // Fail faster so Railway logs show the real error within healthcheck window.
-          retryAttempts: isProd ? 5 : 10,
-          retryDelay: 2000,
+          // Fail fast inside Railway's healthcheck window (default 120s).
+          retryAttempts: isProd ? 3 : 10,
+          retryDelay: 1500,
+          extra: {
+            connectionTimeoutMillis: 5000,
+          },
         };
 
         if (databaseUrl) {
