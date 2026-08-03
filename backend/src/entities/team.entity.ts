@@ -19,7 +19,7 @@ export class Team {
   @JoinColumn({ name: 'gameId' })
   gameEntity: Game | null;
 
-  @Column()
+  @Column({ type: 'text', default: '' })
   logo: string;
 
   @Column({ default: 0 })

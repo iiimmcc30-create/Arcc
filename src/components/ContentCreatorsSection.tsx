@@ -4,8 +4,20 @@ import { api } from '@/lib/api';
 import { useFetch } from '@/hooks/useFetch';
 
 const t = {
-  ar: { title: 'صناع المحتوى', subtitle: 'أصوات ARC', followers: 'متابع', verified: 'موثّق' },
-  en: { title: 'Content Creators', subtitle: 'Voices of ARC', followers: 'Followers', verified: 'Verified' },
+  ar: {
+    title: 'صناع المحتوى',
+    subtitle: 'أصوات ARC',
+    followers: 'متابع',
+    verified: 'موثّق',
+    empty: 'لم تُضف أصوات ARC بعد — أضفهم مع صورهم من لوحة التحكم.',
+  },
+  en: {
+    title: 'Content Creators',
+    subtitle: 'Voices of ARC',
+    followers: 'Followers',
+    verified: 'Verified',
+    empty: 'No ARC Voices yet — add them with photos from the admin dashboard.',
+  },
 };
 
 interface Props { lang: Lang; }
@@ -23,7 +35,7 @@ const PlatformIcon = ({ platform }: { platform: string }) => {
 export default function ContentCreatorsSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
-  const { data: creators } = useFetch(api.creators, []);
+  const { data: creators, loading } = useFetch(api.creators, []);
 
   return (
     <section id="creators" dir={isRtl ? 'rtl' : 'ltr'} className="relative py-24 overflow-hidden">
@@ -40,22 +52,48 @@ export default function ContentCreatorsSection({ lang }: Props) {
           <h2 className="font-display font-900 text-5xl md:text-6xl text-white uppercase">{tr.subtitle}</h2>
         </div>
 
+        {loading && (
+          <div className="text-center font-mono text-sm text-white/40 mb-8">...</div>
+        )}
+
+        {!loading && creators.length === 0 && (
+          <div className="text-center font-mono text-sm text-white/40 mb-8">{tr.empty}</div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {creators.map((creator) => (
             <div key={creator.id} className="arc-card group glass border border-[#0B3C6D]/40 overflow-hidden">
-              {/* Header with image */}
               <div className="relative">
-                <div className="h-32 bg-gradient-to-br from-[#0B3C6D] to-[#174C8F] relative overflow-hidden">
-                  <div className="absolute inset-0 grid-bg opacity-40" />
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#F7941D]/10 to-transparent" />
+                <div className="h-32 relative overflow-hidden bg-gradient-to-br from-[#0B3C6D] to-[#174C8F]">
+                  {creator.image ? (
+                    <>
+                      <img
+                        src={creator.image}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover scale-110 blur-[2px] opacity-60"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0D1117]/80 via-[#0B3C6D]/40 to-transparent" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 grid-bg opacity-40" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#F7941D]/10 to-transparent" />
+                    </>
+                  )}
                 </div>
                 <div className={`absolute bottom-0 translate-y-1/2 ${isRtl ? 'right-5' : 'left-5'}`}>
                   <div className="relative">
-                    <img
-                      src={creator.image}
-                      alt={creator.name}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-[#F7941D]"
-                    />
+                    {creator.image ? (
+                      <img
+                        src={creator.image}
+                        alt={creator.name}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-[#F7941D] bg-[#0D1117]"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full border-2 border-[#F7941D] bg-[#0B3C6D] flex items-center justify-center font-display font-900 text-xl text-white">
+                        {creator.name.slice(0, 1)}
+                      </div>
+                    )}
                     {creator.verified && (
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#F7941D] rounded-full flex items-center justify-center">
                         <svg className="w-3 h-3 text-[#0D1117]" fill="currentColor" viewBox="0 0 24 24">
@@ -67,11 +105,12 @@ export default function ContentCreatorsSection({ lang }: Props) {
                 </div>
               </div>
 
-              {/* Content */}
               <div className="pt-12 pb-5 px-5">
                 <div className={`flex items-start justify-between ${isRtl ? 'flex-row-reverse' : ''}`}>
                   <div>
-                    <h3 className="font-display font-800 text-lg text-white uppercase">{creator.name}</h3>
+                    <h3 className="font-display font-800 text-lg text-white uppercase">
+                      {lang === 'ar' ? creator.nameAr || creator.name : creator.name}
+                    </h3>
                     {creator.verified && (
                       <span className="font-mono text-[10px] text-[#F7941D] bg-[#F7941D]/10 border border-[#F7941D]/30 px-2 py-0.5">
                         ✓ {tr.verified}
@@ -84,12 +123,11 @@ export default function ContentCreatorsSection({ lang }: Props) {
                   {lang === 'ar' ? creator.bio : creator.bioEn}
                 </p>
 
-                {/* Platform stats */}
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  {Object.entries(creator.platforms).map(([platform, count]) => (
+                  {Object.entries(creator.platforms || {}).map(([platform, count]) => (
                     <a
                       key={platform}
-                      href={creator.social[platform as keyof typeof creator.social]}
+                      href={creator.social?.[platform] || '#'}
                       className="flex items-center gap-2 bg-white/5 border border-white/10 px-2.5 py-2 hover:border-[#F7941D]/40 hover:bg-[#F7941D]/5 transition-colors group/link"
                     >
                       <span className="text-[#F7941D] group-hover/link:scale-110 transition-transform">

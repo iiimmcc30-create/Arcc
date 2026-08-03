@@ -17,7 +17,8 @@ export class Creator {
   @Column({ name: 'bio_en', type: 'text' })
   bioEn: string;
 
-  @Column()
+  /** Profile / portrait photo (URL or data URL). */
+  @Column({ type: 'text', default: '' })
   image: string;
 
   @Column({ default: false })
