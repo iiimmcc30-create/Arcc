@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { listPresentDbEnvKeys } from './database/resolve-database-url';
+import { getUploadDir, UPLOAD_PUBLIC_PREFIX } from './uploads/upload-path';
 
 const BOOT_TIMEOUT_MS = 45_000;
 
@@ -75,6 +76,10 @@ async function createApp() {
     }),
   );
 
+  const uploadDir = getUploadDir();
+  app.useStaticAssets(uploadDir, { prefix: `${UPLOAD_PUBLIC_PREFIX}/` });
+  console.log(`[uploads] serving ${uploadDir} at ${UPLOAD_PUBLIC_PREFIX}/`);
+
   const publicDir = join(__dirname, '..', 'public');
   if (existsSync(publicDir)) {
     app.useStaticAssets(publicDir, { index: false });
@@ -82,6 +87,7 @@ async function createApp() {
     expressApp.use((req: Request, res: Response, next: NextFunction) => {
       if (req.method !== 'GET' && req.method !== 'HEAD') return next();
       if (req.path.startsWith('/api')) return next();
+      if (req.path.startsWith(UPLOAD_PUBLIC_PREFIX)) return next();
       if (req.path.includes('.')) return next();
       return res.sendFile(join(publicDir, 'index.html'));
     });

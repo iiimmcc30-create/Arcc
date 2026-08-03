@@ -32,7 +32,17 @@ Also ensure a **PostgreSQL** plugin exists in the same project/environment.
 | `PORT` | **Do not set.** Railway injects `PORT` automatically; the app listens on it. |
 | `JWT_SECRET` | Required for admin login tokens. |
 | `ADMIN_*` | Used by auto-seed / seed script to create the first admin user. |
-| `AUTO_SEED` | Defaults to on in production. Seeds content + admin when the DB is empty. Set `AUTO_SEED=false` to disable. |
+| `AUTO_SEED` | Defaults to on in production. Ensures the admin user exists. Set `AUTO_SEED=false` to disable. |
+| `UPLOAD_DIR` | Optional. Defaults to `/data/uploads` in Docker. Mount a Railway volume at `/data` so uploaded images persist across deploys. |
+
+### Media storage (required for image upload)
+
+1. On the **Arcc** service → **Settings → Volumes** → add a volume.
+2. Mount path: `/data`
+3. Redeploy.
+
+Uploads are saved under `/data/uploads` and served at `https://<domain>/uploads/<file>`.
+Admin uses `POST /api/uploads` (multipart field `file`).
 
 Wrong SSL settings used to be the most common deploy crash; the app now refuses TLS on `*.railway.internal` even if `DB_SSL=true` was set by mistake.
 

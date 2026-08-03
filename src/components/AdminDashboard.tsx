@@ -19,7 +19,7 @@ import {
   type Team,
   type Tournament,
 } from "@/lib/api";
-import { fileToDataUrl } from "@/lib/imageUpload";
+import { uploadImageFile } from "@/lib/imageUpload";
 
 type Section =
   | "dashboard"
@@ -836,14 +836,22 @@ export default function AdminDashboard({ lang, onBack }: Props) {
               const file = e.target.files?.[0];
               if (!file) return;
               try {
-                const dataUrl = await fileToDataUrl(file);
-                setField(key, dataUrl);
-                showSuccess(isRtl ? "تم رفع الصورة" : "Image uploaded");
-              } catch (err) {
                 setToast({
-                  type: "error",
-                  msg: err instanceof Error ? err.message : "Upload failed",
+                  type: "success",
+                  msg: isRtl ? "جاري رفع الصورة..." : "Uploading image...",
                 });
+                const url = await uploadImageFile(file);
+                setField(key, url);
+                showSuccess(isRtl ? "تم رفع الصورة بنجاح" : "Image uploaded successfully");
+              } catch (err) {
+                let msg = err instanceof Error ? err.message : "Upload failed";
+                try {
+                  const parsed = JSON.parse(msg);
+                  if (parsed?.message) msg = Array.isArray(parsed.message) ? parsed.message.join(", ") : parsed.message;
+                } catch {
+                  /* keep raw */
+                }
+                setToast({ type: "error", msg });
               } finally {
                 e.target.value = "";
               }

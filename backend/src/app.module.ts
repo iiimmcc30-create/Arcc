@@ -13,6 +13,7 @@ import {
   SiteSettings,
   Team,
   Tournament,
+  Upload,
   User,
 } from './entities';
 import {
@@ -38,6 +39,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { MerchModule } from './modules/merch/merch.module';
 import { HealthModule } from './modules/health/health.module';
 import { SeedModule } from './modules/seed/seed.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -75,6 +77,7 @@ import { SeedModule } from './modules/seed/seed.module';
             SiteSettings,
             User,
             MerchItem,
+            Upload,
           ],
           synchronize: true,
           ssl,
@@ -107,6 +110,7 @@ import { SeedModule } from './modules/seed/seed.module';
     }),
     HealthModule,
     SeedModule,
+    UploadsModule,
     AuthModule,
     GamesModule,
     TeamsModule,

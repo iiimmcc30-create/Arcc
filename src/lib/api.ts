@@ -311,6 +311,44 @@ export const api = {
   clearContent: () =>
     request<{ ok: boolean; message: string }>('/admin/clear-content', { method: 'POST' }),
 
+  /** Multipart image upload → returns public `/uploads/...` URL. */
+  uploadFile: async (file: File) => {
+    const token = getToken();
+    const body = new FormData();
+    body.append('file', file);
+    const res = await fetch(`${API_BASE}/uploads`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(text || `Upload failed: ${res.status}`);
+    }
+    return res.json() as Promise<{
+      id: number;
+      url: string;
+      filename: string;
+      originalName: string;
+      mimeType: string;
+      size: number;
+    }>;
+  },
+  listUploads: () =>
+    request<
+      {
+        id: number;
+        url: string;
+        filename: string;
+        originalName: string;
+        mimeType: string;
+        size: number;
+        createdAt: string;
+      }[]
+    >('/uploads'),
+  deleteUpload: (id: number) =>
+    request<{ ok: boolean }>(`/uploads/${id}`, { method: 'DELETE' }),
+
   login: (email: string, password: string) =>
     request<{ accessToken: string; user: AdminUser }>('/auth/login', {
       method: 'POST',
