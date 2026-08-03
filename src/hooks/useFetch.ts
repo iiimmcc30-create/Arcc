@@ -23,6 +23,7 @@ export function useFetch<T>(loader: () => Promise<T>, fallback: T) {
         } catch (err) {
           if (!alive) return;
           if (attempts >= 3) {
+            // Keep empty/fallback — never inject demo content on failure.
             setError(err instanceof Error ? err.message : 'Failed to load');
             setLoading(false);
             return;

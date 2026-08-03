@@ -1,4 +1,3 @@
-import { partners as fallbackPartners } from '@/data/mockData';
 import arcLogo from '@/imports/IMG_7058-1.jpeg';
 import type { Lang } from '@/data/mockData';
 import { api } from '@/lib/api';
@@ -36,7 +35,7 @@ interface Props { lang: Lang; onJoin: () => void; }
 export default function PartnersFooter({ lang, onJoin }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
-  const { data: partners } = useFetch(api.partners, fallbackPartners as any);
+  const { data: partners } = useFetch(api.partners, []);
   const { data: site } = useFetch(api.site, {
     id: 1,
     brandName: 'ARC Esports',

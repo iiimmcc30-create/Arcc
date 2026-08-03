@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import {
   Application,
   Creator,
   News,
   Player,
+  SiteSettings,
   Team,
   Tournament,
 } from '../../entities';
@@ -13,6 +14,7 @@ import {
 @Injectable()
 export class AdminService {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(Application) private readonly apps: Repository<Application>,
     @InjectRepository(Player) private readonly players: Repository<Player>,
     @InjectRepository(Team) private readonly teams: Repository<Team>,
@@ -46,6 +48,31 @@ export class AdminService {
         suspended: applications.filter((a) => a.status === 'suspended').length,
       },
       recent: applications.slice(0, 8),
+    };
+  }
+
+  /** Wipe seeded/demo content. Keeps admin users. */
+  async clearContent() {
+    await this.dataSource.query(`
+      TRUNCATE TABLE
+        applications, media, players, teams, creators,
+        tournaments, news, partners, games, site_settings,
+        merch_items
+      RESTART IDENTITY CASCADE
+    `);
+
+    await this.dataSource.getRepository(SiteSettings).save({
+      brandName: 'ARC Esports',
+      taglineAr: '',
+      taglineEn: '',
+      social: {},
+      stats: { players: 0, teams: 0, creators: 0, tournaments: 0 },
+      contactEmail: 'contact@arcesports.com',
+    });
+
+    return {
+      ok: true,
+      message: 'Content cleared. Users kept. Add content from the admin dashboard.',
     };
   }
 }

@@ -1,85 +1,380 @@
-import React, { useEffect, useState } from 'react';
-import arcLogo from '@/imports/IMG_7058-1.jpeg';
-import type { Lang } from '@/data/mockData';
+import React, { useEffect, useState } from "react";
+import arcLogo from "@/imports/IMG_7058-1.jpeg";
+import type { Lang } from "@/data/mockData";
 import {
   api,
   getToken,
   setToken,
   type AdminUser,
   type Application,
+  type Creator,
   type DashboardStats,
+  type Game,
+  type MediaItem,
+  type MerchItem,
   type NewsItem,
+  type Partner,
+  type Player,
   type SiteSettings,
+  type Team,
   type Tournament,
-} from '@/lib/api';
+} from "@/lib/api";
 
-type Section = 'dashboard' | 'players' | 'teams' | 'creators' | 'tournaments' | 'news' | 'site' | 'users';
-type Status = 'pending' | 'approved' | 'rejected' | 'suspended';
+type Section =
+  | "dashboard"
+  | "applications"
+  | "games"
+  | "rosterPlayers"
+  | "rosterTeams"
+  | "creators"
+  | "tournaments"
+  | "news"
+  | "media"
+  | "partners"
+  | "merch"
+  | "site"
+  | "users";
+
+type Status = "pending" | "approved" | "rejected" | "suspended";
+type AppTypeFilter = "all" | "player" | "team" | "creator";
+type StatusFilter = "all" | Status;
+
+const ARC_COLORS = ["#0B3C6D", "#F7941D", "#0D1117"];
 
 const t = {
   ar: {
-    title: 'لوحة التحكم', back: 'الموقع العام',
-    dashboard: 'الرئيسية', players: 'اللاعبون', teams: 'الفرق',
-    creators: 'صناع المحتوى', tournaments: 'البطولات', news: 'الأخبار', site: 'إدارة الموقع',
-    users: 'المشرفون',
-    totalPlayers: 'إجمالي اللاعبين', totalTeams: 'إجمالي الفرق', totalCreators: 'صناع المحتوى',
-    newReqs: 'طلبات جديدة', pending: 'قيد المراجعة', approved: 'مقبولة', rejected: 'مرفوضة',
-    recentActivity: 'النشاط الأخير',
-    name: 'الاسم', game: 'اللعبة', status: 'الحالة', date: 'التاريخ', actions: 'الإجراءات',
-    approve: 'قبول', reject: 'رفض', view: 'عرض', suspend: 'تعليق',
-    captain: 'القائد', platform: 'المنصة', followers: 'المتابعون',
-    role: 'المركز', country: 'الدولة',
-    add: 'إضافة', save: 'حفظ', delete: 'حذف', loading: 'جاري التحميل...',
-    loginTitle: 'دخول الإدارة', loginSub: 'سجّل الدخول لإدارة منظمة ARC',
-    email: 'البريد الإلكتروني', password: 'كلمة المرور', login: 'تسجيل الدخول',
-    logout: 'تسجيل الخروج', addSupervisor: 'إضافة مشرف',
-    supervisorName: 'اسم المشرف', active: 'نشط', inactive: 'موقوف',
-    deactivate: 'إيقاف', activate: 'تفعيل',
+    title: "لوحة التحكم",
+    back: "الموقع العام",
+    dashboard: "الرئيسية",
+    applications: "الطلبات",
+    games: "الألعاب",
+    rosterPlayers: "اللاعبون",
+    rosterTeams: "الفرق",
+    creators: "صناع المحتوى",
+    tournaments: "البطولات",
+    news: "الأخبار",
+    media: "الوسائط",
+    partners: "الشركاء",
+    merch: "المتجر",
+    site: "إعدادات الموقع",
+    users: "المشرفون",
+    totalPlayers: "اللاعبون",
+    totalTeams: "الفرق",
+    totalCreators: "صناع المحتوى",
+    totalTournaments: "البطولات",
+    newReqs: "طلبات معلقة",
+    recentActivity: "آخر الطلبات",
+    name: "الاسم",
+    game: "اللعبة",
+    status: "الحالة",
+    date: "التاريخ",
+    actions: "الإجراءات",
+    approve: "قبول",
+    reject: "رفض",
+    view: "عرض",
+    suspend: "تعليق",
+    delete: "حذف",
+    captain: "القائد",
+    platform: "المنصة",
+    followers: "المتابعون",
+    role: "المركز",
+    country: "الدولة",
+    add: "إضافة",
+    edit: "تعديل",
+    save: "حفظ",
+    cancel: "إلغاء",
+    loading: "جاري التحميل...",
+    empty: "لا توجد بيانات",
+    loginTitle: "دخول الإدارة",
+    loginSub: "سجّل الدخول لإدارة منظمة ARC",
+    email: "البريد الإلكتروني",
+    password: "كلمة المرور",
+    login: "تسجيل الدخول",
+    logout: "تسجيل الخروج",
+    addSupervisor: "إضافة مشرف",
+    supervisorName: "اسم المشرف",
+    active: "نشط",
+    inactive: "موقوف",
+    deactivate: "إيقاف",
+    activate: "تفعيل",
+    type: "النوع",
+    all: "الكل",
+    player: "لاعب",
+    team: "فريق",
+    creator: "صانع محتوى",
+    pending: "قيد المراجعة",
+    approved: "مقبول",
+    rejected: "مرفوض",
+    suspended: "معلّق",
+    adminNotes: "ملاحظات الإدارة",
+    clearContent: "مسح كل المحتوى",
+    clearConfirm: "هل أنت متأكد؟ سيتم حذف كل المحتوى العام.",
+    discord: "ديسكورد",
+    age: "العمر",
+    accountId: "معرف الحساب",
+    uid: "UID",
+    rank: "الرتبة",
+    achievements: "الإنجازات",
+    profileLink: "رابط الملف",
+    message: "الرسالة",
+    teamName: "اسم الفريق",
+    playerCount: "عدد اللاعبين",
+    platforms: "المنصات",
+    social: "التواصل",
+    avgViews: "متوسط المشاهدات",
+    avgLive: "متوسط البث المباشر",
+    bio: "نبذة",
+    createdAt: "تاريخ الإنشاء",
+    updatedAt: "آخر تحديث",
+    error: "حدث خطأ",
+    success: "تم الحفظ",
+    confirmDelete: "تأكيد الحذف؟",
+    brandName: "اسم العلامة",
+    taglineAr: "الشعار (عربي)",
+    taglineEn: "الشعار (إنجليزي)",
+    contactEmail: "بريد التواصل",
+    heroVideoUrl: "رابط فيديو البطل",
+    stats: "الإحصائيات",
+    price: "السعر",
+    category: "التصنيف",
+    image: "الصورة",
+    logo: "الشعار",
+    url: "الرابط",
+    featured: "مميز",
+    available: "متاح",
+    colors: "الألوان (مفصولة بفاصلة)",
+    sizes: "المقاسات (مفصولة بفاصلة)",
+    description: "الوصف",
+    descriptionAr: "الوصف (عربي)",
+    verified: "موثّق",
+    thumbnail: "الصورة المصغرة",
+    videoUrl: "رابط الفيديو",
+    slug: "المعرّف",
+    players: "اللاعبون",
+    tournamentsCount: "البطولات",
+    desc: "الوصف (عربي)",
+    descEn: "الوصف (إنجليزي)",
+    flag: "العلم",
+    startDate: "تاريخ البدء",
+    endDate: "تاريخ الانتهاء",
+    prize: "الجائزة",
+    summary: "الملخص (عربي)",
+    summaryEn: "الملخص (إنجليزي)",
+    titleAr: "العنوان (عربي)",
+    titleEn: "العنوان (إنجليزي)",
+    sortOrder: "الترتيب",
+    close: "إغلاق",
   },
   en: {
-    title: 'Admin Dashboard', back: 'Public Site',
-    dashboard: 'Dashboard', players: 'Players', teams: 'Teams',
-    creators: 'Content Creators', tournaments: 'Tournaments', news: 'News', site: 'Site Management',
-    users: 'Supervisors',
-    totalPlayers: 'Total Players', totalTeams: 'Total Teams', totalCreators: 'Content Creators',
-    newReqs: 'New Requests', pending: 'Pending', approved: 'Approved', rejected: 'Rejected',
-    recentActivity: 'Recent Activity',
-    name: 'Name', game: 'Game', status: 'Status', date: 'Date', actions: 'Actions',
-    approve: 'Approve', reject: 'Reject', view: 'View', suspend: 'Suspend',
-    captain: 'Captain', platform: 'Platform', followers: 'Followers',
-    role: 'Role', country: 'Country',
-    add: 'Add', save: 'Save', delete: 'Delete', loading: 'Loading...',
-    loginTitle: 'Admin Login', loginSub: 'Sign in to manage ARC Esports',
-    email: 'Email', password: 'Password', login: 'Sign In',
-    logout: 'Logout', addSupervisor: 'Add Supervisor',
-    supervisorName: 'Supervisor name', active: 'Active', inactive: 'Inactive',
-    deactivate: 'Deactivate', activate: 'Activate',
+    title: "Admin Dashboard",
+    back: "Public Site",
+    dashboard: "Dashboard",
+    applications: "Applications",
+    games: "Games",
+    rosterPlayers: "Players",
+    rosterTeams: "Teams",
+    creators: "Content Creators",
+    tournaments: "Tournaments",
+    news: "News",
+    media: "Media",
+    partners: "Partners",
+    merch: "Merch Store",
+    site: "Site Settings",
+    users: "Supervisors",
+    totalPlayers: "Players",
+    totalTeams: "Teams",
+    totalCreators: "Creators",
+    totalTournaments: "Tournaments",
+    newReqs: "Pending Apps",
+    recentActivity: "Recent Applications",
+    name: "Name",
+    game: "Game",
+    status: "Status",
+    date: "Date",
+    actions: "Actions",
+    approve: "Approve",
+    reject: "Reject",
+    view: "View",
+    suspend: "Suspend",
+    delete: "Delete",
+    captain: "Captain",
+    platform: "Platform",
+    followers: "Followers",
+    role: "Role",
+    country: "Country",
+    add: "Add",
+    edit: "Edit",
+    save: "Save",
+    cancel: "Cancel",
+    loading: "Loading...",
+    empty: "No data yet",
+    loginTitle: "Admin Login",
+    loginSub: "Sign in to manage ARC Esports",
+    email: "Email",
+    password: "Password",
+    login: "Sign In",
+    logout: "Logout",
+    addSupervisor: "Add Supervisor",
+    supervisorName: "Supervisor name",
+    active: "Active",
+    inactive: "Inactive",
+    deactivate: "Deactivate",
+    activate: "Activate",
+    type: "Type",
+    all: "All",
+    player: "Player",
+    team: "Team",
+    creator: "Creator",
+    pending: "Pending",
+    approved: "Approved",
+    rejected: "Rejected",
+    suspended: "Suspended",
+    adminNotes: "Admin Notes",
+    clearContent: "Clear All Content",
+    clearConfirm: "Are you sure? This will delete all public content.",
+    discord: "Discord",
+    age: "Age",
+    accountId: "Account ID",
+    uid: "UID",
+    rank: "Rank",
+    achievements: "Achievements",
+    profileLink: "Profile Link",
+    message: "Message",
+    teamName: "Team Name",
+    playerCount: "Player Count",
+    platforms: "Platforms",
+    social: "Social",
+    avgViews: "Avg Views",
+    avgLive: "Avg Live",
+    bio: "Bio",
+    createdAt: "Created",
+    updatedAt: "Updated",
+    error: "An error occurred",
+    success: "Saved successfully",
+    confirmDelete: "Confirm delete?",
+    brandName: "Brand Name",
+    taglineAr: "Tagline (AR)",
+    taglineEn: "Tagline (EN)",
+    contactEmail: "Contact Email",
+    heroVideoUrl: "Hero Video URL",
+    stats: "Stats",
+    price: "Price",
+    category: "Category",
+    image: "Image",
+    logo: "Logo",
+    url: "URL",
+    featured: "Featured",
+    available: "Available",
+    colors: "Colors (comma-separated)",
+    sizes: "Sizes (comma-separated)",
+    description: "Description",
+    descriptionAr: "Description (AR)",
+    verified: "Verified",
+    thumbnail: "Thumbnail",
+    videoUrl: "Video URL",
+    slug: "Slug",
+    players: "Players",
+    tournamentsCount: "Tournaments",
+    desc: "Description (AR)",
+    descEn: "Description (EN)",
+    flag: "Flag",
+    startDate: "Start Date",
+    endDate: "End Date",
+    prize: "Prize",
+    summary: "Summary (AR)",
+    summaryEn: "Summary (EN)",
+    titleAr: "Title (AR)",
+    titleEn: "Title (EN)",
+    sortOrder: "Sort Order",
+    close: "Close",
   },
 };
 
-interface Props { lang: Lang; onBack: () => void; }
+interface Props {
+  lang: Lang;
+  onBack: () => void;
+}
+
+function splitCsv(s: string): string[] {
+  return s
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function joinCsv(arr?: string[]): string {
+  return (arr || []).join(", ");
+}
+
+function parseKeyVal(s: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  s.split(",").forEach((pair) => {
+    const [k, ...rest] = pair.split(":");
+    if (k && rest.length) out[k.trim()] = rest.join(":").trim();
+  });
+  return out;
+}
+
+function formatKeyVal(obj?: Record<string, string>): string {
+  if (!obj) return "";
+  return Object.entries(obj)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(", ");
+}
 
 export default function AdminDashboard({ lang, onBack }: Props) {
-  const isRtl = lang === 'ar';
+  const isRtl = lang === "ar";
   const tr = t[lang];
-  const [section, setSection] = useState<Section>('dashboard');
+
+  const [section, setSection] = useState<Section>("dashboard");
   const [user, setUser] = useState<AdminUser | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [toast, setToast] = useState<{ type: "error" | "success"; msg: string } | null>(null);
 
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [apps, setApps] = useState<Application[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
+  const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
+  const [rosterTeams, setRosterTeams] = useState<Team[]>([]);
+  const [creators, setCreators] = useState<Creator[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [merch, setMerch] = useState<MerchItem[]>([]);
   const [site, setSite] = useState<SiteSettings | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [selected, setSelected] = useState<Application | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'supervisor' });
+  const [appTypeFilter, setAppTypeFilter] = useState<AppTypeFilter>("all");
+  const [appStatusFilter, setAppStatusFilter] = useState<StatusFilter>("all");
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [appNotes, setAppNotes] = useState("");
+
+  const [modal, setModal] = useState<{
+    kind: Section | "none";
+    mode: "add" | "edit";
+    form: Record<string, unknown>;
+    id?: number;
+  } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "supervisor" });
+
+  const showError = (err: unknown) => {
+    const msg = err instanceof Error ? err.message : tr.error;
+    setToast({ type: "error", msg });
+    if (/401|Unauthorized/i.test(msg)) {
+      setToken(null);
+      setUser(null);
+    }
+  };
+
+  const showSuccess = (msg?: string) => setToast({ type: "success", msg: msg || tr.success });
 
   useEffect(() => {
     const token = getToken();
@@ -87,7 +382,8 @@ export default function AdminDashboard({ lang, onBack }: Props) {
       setAuthChecking(false);
       return;
     }
-    api.me()
+    api
+      .me()
       .then((u) => setUser(u))
       .catch(() => setToken(null))
       .finally(() => setAuthChecking(false));
@@ -97,26 +393,50 @@ export default function AdminDashboard({ lang, onBack }: Props) {
     if (!getToken()) return;
     setLoading(true);
     try {
-      const [dashboard, applications, tournamentsData, newsData, siteData, usersData] = await Promise.all([
+      const [
+        dashboard,
+        applications,
+        gamesData,
+        playersData,
+        teamsData,
+        creatorsData,
+        tournamentsData,
+        newsData,
+        mediaData,
+        partnersData,
+        merchData,
+        siteData,
+        usersData,
+      ] = await Promise.all([
         api.dashboard(),
         api.applications(),
+        api.games(),
+        api.players(),
+        api.teams(),
+        api.creators(),
         api.tournaments(),
         api.news(),
+        api.media(),
+        api.partners(),
+        api.merchAll(),
         api.site(),
         api.users(),
       ]);
       setStats(dashboard);
       setApps(applications);
+      setGames(gamesData);
+      setRosterPlayers(playersData);
+      setRosterTeams(teamsData);
+      setCreators(creatorsData);
       setTournaments(tournamentsData);
       setNews(newsData);
+      setMedia(mediaData);
+      setPartners(partnersData);
+      setMerch(merchData);
       setSite(siteData);
       setUsers(usersData);
     } catch (err) {
-      const message = err instanceof Error ? err.message : '';
-      if (/401|Unauthorized/i.test(message)) {
-        setToken(null);
-        setUser(null);
-      }
+      showError(err);
     } finally {
       setLoading(false);
     }
@@ -125,6 +445,12 @@ export default function AdminDashboard({ lang, onBack }: Props) {
   useEffect(() => {
     if (user && getToken()) load();
   }, [user]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +461,7 @@ export default function AdminDashboard({ lang, onBack }: Props) {
       setToken(result.accessToken);
       setUser(result.user);
     } catch {
-      setLoginError(isRtl ? 'بيانات الدخول غير صحيحة' : 'Invalid credentials');
+      setLoginError(isRtl ? "بيانات الدخول غير صحيحة" : "Invalid credentials");
     } finally {
       setLoggingIn(false);
     }
@@ -149,14 +475,249 @@ export default function AdminDashboard({ lang, onBack }: Props) {
     setUsers([]);
   };
 
-  const updateStatus = async (id: number, status: Status) => {
-    await api.updateApplicationStatus(id, status);
-    await load();
+  const updateAppStatus = async (id: number, status: Status) => {
+    try {
+      await api.updateApplicationStatus(id, status, appNotes || undefined);
+      setSelectedApp(null);
+      setAppNotes("");
+      await load();
+      showSuccess();
+    } catch (err) {
+      showError(err);
+    }
   };
+
+  const deleteApp = async (id: number) => {
+    if (!window.confirm(tr.confirmDelete)) return;
+    try {
+      await api.deleteApplication(id);
+      setSelectedApp(null);
+      await load();
+      showSuccess();
+    } catch (err) {
+      showError(err);
+    }
+  };
+
+  const saveAppNotes = async () => {
+    if (!selectedApp) return;
+    try {
+      await api.updateApplication(selectedApp.id, { adminNotes: appNotes });
+      await load();
+      showSuccess();
+    } catch (err) {
+      showError(err);
+    }
+  };
+
+  const handleClearContent = async () => {
+    if (!window.confirm(tr.clearConfirm)) return;
+    try {
+      await api.clearContent();
+      await load();
+      showSuccess();
+    } catch (err) {
+      showError(err);
+    }
+  };
+
+  const openModal = (kind: Section, mode: "add" | "edit", form: Record<string, unknown>, id?: number) => {
+    setModal({ kind, mode, form, id });
+  };
+
+  const closeModal = () => setModal(null);
+
+  const setField = (key: string, value: unknown) => {
+    setModal((m) => (m ? { ...m, form: { ...m.form, [key]: value } } : m));
+  };
+
+  const handleModalSave = async () => {
+    if (!modal) return;
+    setSaving(true);
+    try {
+      const f = modal.form;
+      switch (modal.kind) {
+        case "games":
+          if (modal.mode === "add") await api.createGame(f as Partial<Game>);
+          else await api.updateGame(modal.id!, f as Partial<Game>);
+          break;
+        case "rosterPlayers": {
+          const payload = {
+            ...f,
+            achievements: splitCsv(String(f.achievementsCsv || "")),
+            achievementsEn: splitCsv(String(f.achievementsEnCsv || "")),
+            social: parseKeyVal(String(f.socialCsv || "")),
+          };
+          delete (payload as Record<string, unknown>).achievementsCsv;
+          delete (payload as Record<string, unknown>).achievementsEnCsv;
+          delete (payload as Record<string, unknown>).socialCsv;
+          if (modal.mode === "add") await api.createPlayer(payload as Partial<Player>);
+          else await api.updatePlayer(modal.id!, payload as Partial<Player>);
+          break;
+        }
+        case "rosterTeams": {
+          const payload = {
+            ...f,
+            achievements: splitCsv(String(f.achievementsCsv || "")),
+            achievementsEn: splitCsv(String(f.achievementsEnCsv || "")),
+            tournaments: splitCsv(String(f.tournamentsCsv || "")),
+          };
+          delete (payload as Record<string, unknown>).achievementsCsv;
+          delete (payload as Record<string, unknown>).achievementsEnCsv;
+          delete (payload as Record<string, unknown>).tournamentsCsv;
+          if (modal.mode === "add") await api.createTeam(payload as Partial<Team>);
+          else await api.updateTeam(modal.id!, payload as Partial<Team>);
+          break;
+        }
+        case "creators": {
+          const payload = {
+            ...f,
+            platforms: parseKeyVal(String(f.platformsCsv || "")),
+            social: parseKeyVal(String(f.socialCsv || "")),
+            verified: Boolean(f.verified),
+          };
+          delete (payload as Record<string, unknown>).platformsCsv;
+          delete (payload as Record<string, unknown>).socialCsv;
+          if (modal.mode === "add") await api.createCreator(payload as Partial<Creator>);
+          else await api.updateCreator(modal.id!, payload as Partial<Creator>);
+          break;
+        }
+        case "tournaments":
+          if (modal.mode === "add") await api.createTournament(f as Partial<Tournament>);
+          else await api.updateTournament(modal.id!, f as Partial<Tournament>);
+          break;
+        case "news":
+          if (modal.mode === "add") await api.createNews(f as Partial<NewsItem>);
+          else await api.updateNews(modal.id!, f as Partial<NewsItem>);
+          break;
+        case "media":
+          if (modal.mode === "add") await api.createMedia(f as Partial<MediaItem>);
+          else await api.updateMedia(modal.id!, f as Partial<MediaItem>);
+          break;
+        case "partners":
+          if (modal.mode === "add") await api.createPartner(f as Partial<Partner>);
+          else await api.updatePartner(modal.id!, f as Partial<Partner>);
+          break;
+        case "merch": {
+          const payload = {
+            ...f,
+            colors: splitCsv(String(f.colorsCsv || "")),
+            sizes: splitCsv(String(f.sizesCsv || "")),
+            featured: Boolean(f.featured),
+            available: Boolean(f.available),
+            sortOrder: Number(f.sortOrder) || 0,
+          };
+          delete (payload as Record<string, unknown>).colorsCsv;
+          delete (payload as Record<string, unknown>).sizesCsv;
+          if (modal.mode === "add") await api.createMerch(payload as Partial<MerchItem>);
+          else await api.updateMerch(modal.id!, payload as Partial<MerchItem>);
+          break;
+        }
+      }
+      closeModal();
+      await load();
+      showSuccess();
+    } catch (err) {
+      showError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (kind: Section, id: number) => {
+    if (!window.confirm(tr.confirmDelete)) return;
+    try {
+      switch (kind) {
+        case "games":
+          await api.deleteGame(id);
+          break;
+        case "rosterPlayers":
+          await api.deletePlayer(id);
+          break;
+        case "rosterTeams":
+          await api.deleteTeam(id);
+          break;
+        case "creators":
+          await api.deleteCreator(id);
+          break;
+        case "tournaments":
+          await api.deleteTournament(id);
+          break;
+        case "news":
+          await api.deleteNews(id);
+          break;
+        case "media":
+          await api.deleteMedia(id);
+          break;
+        case "partners":
+          await api.deletePartner(id);
+          break;
+        case "merch":
+          await api.deleteMerch(id);
+          break;
+      }
+      await load();
+      showSuccess();
+    } catch (err) {
+      showError(err);
+    }
+  };
+
+  const saveSite = async () => {
+    if (!site) return;
+    try {
+      const updated = await api.updateSite(site);
+      setSite(updated);
+      showSuccess();
+    } catch (err) {
+      showError(err);
+    }
+  };
+
+  const statusBadge = (status: Status) => {
+    const map: Record<Status, string> = {
+      pending: "badge-pending",
+      approved: "badge-active",
+      rejected: "badge-rejected",
+      suspended: "badge-pending",
+    };
+    const label: Record<Status, string> = {
+      pending: tr.pending,
+      approved: tr.approved,
+      rejected: tr.rejected,
+      suspended: tr.suspended,
+    };
+    return <span className={`font-mono text-xs px-2 py-0.5 ${map[status]}`}>{label[status]}</span>;
+  };
+
+  const filteredApps = apps.filter((a) => {
+    if (appTypeFilter !== "all" && a.type !== appTypeFilter) return false;
+    if (appStatusFilter !== "all" && a.status !== appStatusFilter) return false;
+    return true;
+  });
+
+  const isAdmin = user?.role === "admin";
+
+  const allNavItems: { id: Section; label: string; icon: string; adminOnly?: boolean }[] = [
+    { id: "dashboard", label: tr.dashboard, icon: "📊" },
+    { id: "applications", label: tr.applications, icon: "📋" },
+    { id: "games", label: tr.games, icon: "🎯" },
+    { id: "rosterPlayers", label: tr.rosterPlayers, icon: "🎮" },
+    { id: "rosterTeams", label: tr.rosterTeams, icon: "🛡️" },
+    { id: "creators", label: tr.creators, icon: "📹" },
+    { id: "tournaments", label: tr.tournaments, icon: "🏆" },
+    { id: "news", label: tr.news, icon: "📰" },
+    { id: "media", label: tr.media, icon: "🎬" },
+    { id: "partners", label: tr.partners, icon: "🤝" },
+    { id: "merch", label: tr.merch, icon: "👕" },
+    { id: "site", label: tr.site, icon: "⚙️" },
+    { id: "users", label: tr.users, icon: "👥", adminOnly: true },
+  ];
+  const navItems = allNavItems.filter((item) => !item.adminOnly || isAdmin);
 
   if (authChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080C12] text-white/50 font-mono">
+      <div className="min-h-screen flex items-center justify-center bg-[#0D1117] text-white/50 font-mono">
         {tr.loading}
       </div>
     );
@@ -164,12 +725,22 @@ export default function AdminDashboard({ lang, onBack }: Props) {
 
   if (!user) {
     return (
-      <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen flex items-center justify-center bg-[#080C12] px-4 relative overflow-hidden">
+      <div
+        dir={isRtl ? "rtl" : "ltr"}
+        className="min-h-screen flex items-center justify-center bg-[#0D1117] px-4 relative overflow-hidden"
+      >
         <div className="absolute inset-0 grid-bg opacity-20" />
         <div className="absolute top-1/4 left-1/3 w-72 h-72 rounded-full bg-[#0B3C6D]/30 blur-[120px]" />
-        <form onSubmit={handleLogin} className="relative glass-dark border border-[#0B3C6D]/50 p-8 w-full max-w-md">
+        <form
+          onSubmit={handleLogin}
+          className="relative glass-dark border border-[#0B3C6D]/50 p-8 w-full max-w-md"
+        >
           <div className="text-center mb-8">
-            <img src={arcLogo} alt="ARC" className="w-16 h-16 mx-auto mb-4 object-contain rounded-full border border-[#F7941D]/40" />
+            <img
+              src={arcLogo}
+              alt="ARC"
+              className="w-16 h-16 mx-auto mb-4 object-contain rounded-full border border-[#F7941D]/40"
+            />
             <h1 className="font-display font-900 text-3xl text-white uppercase">{tr.loginTitle}</h1>
             <p className="font-body text-white/40 text-sm mt-2">{tr.loginSub}</p>
           </div>
@@ -182,7 +753,6 @@ export default function AdminDashboard({ lang, onBack }: Props) {
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 className="arc-input"
-                placeholder="madunitesp@gmail.com"
               />
             </div>
             <div>
@@ -201,7 +771,7 @@ export default function AdminDashboard({ lang, onBack }: Props) {
               </div>
             )}
             <button type="submit" disabled={loggingIn} className="btn-arc w-full py-3">
-              {loggingIn ? '...' : tr.login}
+              {loggingIn ? "..." : tr.login}
             </button>
             <button type="button" onClick={onBack} className="w-full font-mono text-xs text-white/30 hover:text-white mt-2">
               {tr.back}
@@ -212,59 +782,231 @@ export default function AdminDashboard({ lang, onBack }: Props) {
     );
   }
 
-  const playerApps = apps.filter((a) => a.type === 'player');
-  const teamApps = apps.filter((a) => a.type === 'team');
-  const creatorApps = apps.filter((a) => a.type === 'creator');
+  const renderEmpty = () => (
+    <div className="glass border border-[#0B3C6D]/40 p-12 text-center">
+      <p className="font-mono text-sm text-white/30">{tr.empty}</p>
+    </div>
+  );
 
-  const statusBadge = (status: Status) => {
-    const map = {
-      pending: 'badge-pending',
-      approved: 'badge-active',
-      rejected: 'badge-rejected',
-      suspended: 'badge-pending',
-    };
-    const label = {
-      pending: isRtl ? 'قيد المراجعة' : 'Pending',
-      approved: isRtl ? 'مقبول' : 'Approved',
-      rejected: isRtl ? 'مرفوض' : 'Rejected',
-      suspended: isRtl ? 'معلّق' : 'Suspended',
-    };
+  const renderTableActions = (kind: Section, id: number, onEdit: () => void) => (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onEdit}
+        className="font-mono text-xs text-[#F7941D] border border-[#F7941D]/30 px-2.5 py-1 hover:bg-[#F7941D]/10"
+      >
+        {tr.edit}
+      </button>
+      <button
+        onClick={() => handleDelete(kind, id)}
+        className="font-mono text-xs text-red-400 border border-red-400/30 px-2.5 py-1 hover:bg-red-400/10"
+      >
+        {tr.delete}
+      </button>
+    </div>
+  );
+
+  const renderFormField = (
+    label: string,
+    key: string,
+    type: "text" | "number" | "textarea" | "select" | "checkbox" = "text",
+    options?: { value: string; label: string }[],
+  ) => {
+    if (!modal) return null;
+    const val = modal.form[key];
+    if (type === "textarea") {
+      return (
+        <div key={key}>
+          <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{label}</label>
+          <textarea
+            className="arc-input min-h-[80px]"
+            value={String(val ?? "")}
+            onChange={(e) => setField(key, e.target.value)}
+          />
+        </div>
+      );
+    }
+    if (type === "select" && options) {
+      return (
+        <div key={key}>
+          <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{label}</label>
+          <select className="arc-select" value={String(val ?? "")} onChange={(e) => setField(key, e.target.value)}>
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+    if (type === "checkbox") {
+      return (
+        <label key={key} className="flex items-center gap-2 font-body text-sm text-white/70 cursor-pointer">
+          <input type="checkbox" checked={Boolean(val)} onChange={(e) => setField(key, e.target.checked)} />
+          {label}
+        </label>
+      );
+    }
     return (
-      <span className={`font-mono text-xs px-2 py-0.5 ${map[status]}`}>
-        {label[status]}
-      </span>
+      <div key={key}>
+        <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{label}</label>
+        <input
+          type={type}
+          className="arc-input"
+          value={val === undefined || val === null ? "" : String(val)}
+          onChange={(e) => setField(key, type === "number" ? Number(e.target.value) : e.target.value)}
+        />
+      </div>
     );
   };
 
-  const navItems: { id: Section; label: string; icon: string; adminOnly?: boolean }[] = [
-    { id: 'dashboard', label: tr.dashboard, icon: '📊' },
-    { id: 'players', label: tr.players, icon: '🎮' },
-    { id: 'teams', label: tr.teams, icon: '🛡️' },
-    { id: 'creators', label: tr.creators, icon: '📹' },
-    { id: 'tournaments', label: tr.tournaments, icon: '🏆' },
-    { id: 'news', label: tr.news, icon: '📰' },
-    { id: 'site', label: tr.site, icon: '⚙️' },
-    { id: 'users', label: tr.users, icon: '👥', adminOnly: true },
-  ].filter((item) => !item.adminOnly || user.role === 'admin');
+  const renderModalForm = () => {
+    if (!modal) return null;
+    const fields: React.ReactNode[] = [];
+    switch (modal.kind) {
+      case "games":
+        fields.push(
+          renderFormField(tr.slug, "slug"),
+          renderFormField(tr.name, "name"),
+          renderFormField(tr.titleAr, "nameAr"),
+          renderFormField(tr.image, "image"),
+          renderFormField(tr.players, "players", "number"),
+          renderFormField(tr.tournamentsCount, "tournaments", "number"),
+          renderFormField(tr.desc, "desc", "textarea"),
+          renderFormField(tr.descEn, "descEn", "textarea"),
+        );
+        break;
+      case "rosterPlayers":
+        fields.push(
+          renderFormField(tr.name, "name"),
+          renderFormField(tr.game, "game"),
+          renderFormField("Team ID", "teamId", "number"),
+          renderFormField(tr.country, "country"),
+          renderFormField(tr.country + " EN", "countryEn"),
+          renderFormField(tr.flag, "flag"),
+          renderFormField(tr.role, "role"),
+          renderFormField(tr.rank, "rank"),
+          renderFormField(tr.image, "image"),
+          renderFormField(tr.achievements + " AR", "achievementsCsv"),
+          renderFormField(tr.achievements + " EN", "achievementsEnCsv"),
+          renderFormField(tr.social + " (key: val)", "socialCsv"),
+        );
+        break;
+      case "rosterTeams":
+        fields.push(
+          renderFormField(tr.name, "name"),
+          renderFormField(tr.game, "game"),
+          renderFormField("Game ID", "gameId", "number"),
+          renderFormField(tr.logo, "logo"),
+          renderFormField(tr.players, "players", "number"),
+          renderFormField(tr.captain, "captain"),
+          renderFormField(tr.achievements + " AR", "achievementsCsv"),
+          renderFormField(tr.achievements + " EN", "achievementsEnCsv"),
+          renderFormField(tr.tournaments, "tournamentsCsv"),
+        );
+        break;
+      case "creators":
+        fields.push(
+          renderFormField(tr.name, "name"),
+          renderFormField(tr.titleAr, "nameAr"),
+          renderFormField(tr.bio, "bio", "textarea"),
+          renderFormField(tr.bio + " EN", "bioEn", "textarea"),
+          renderFormField(tr.image, "image"),
+          renderFormField(tr.verified, "verified", "checkbox"),
+          renderFormField(tr.platforms + " (key: val)", "platformsCsv"),
+          renderFormField(tr.social + " (key: val)", "socialCsv"),
+        );
+        break;
+      case "tournaments":
+        fields.push(
+          renderFormField(tr.name, "name"),
+          renderFormField(tr.titleAr, "nameAr"),
+          renderFormField(tr.status, "status", "select", [
+            { value: "upcoming", label: "Upcoming" },
+            { value: "active", label: "Active" },
+            { value: "past", label: "Past" },
+          ]),
+          renderFormField(tr.image, "image"),
+          renderFormField(tr.game, "game"),
+          renderFormField(tr.startDate, "startDate"),
+          renderFormField(tr.endDate, "endDate"),
+          renderFormField(tr.prize, "prize"),
+          renderFormField(tr.players, "teams", "number"),
+        );
+        break;
+      case "news":
+        fields.push(
+          renderFormField(tr.titleAr, "title"),
+          renderFormField(tr.titleEn, "titleEn"),
+          renderFormField(tr.summary, "summary", "textarea"),
+          renderFormField(tr.summaryEn, "summaryEn", "textarea"),
+          renderFormField(tr.date, "date"),
+          renderFormField(tr.category, "category"),
+          renderFormField(tr.category + " EN", "categoryEn"),
+          renderFormField(tr.image, "image"),
+        );
+        break;
+      case "media":
+        fields.push(
+          renderFormField(tr.titleAr, "titleAr"),
+          renderFormField(tr.name, "title"),
+          renderFormField(tr.thumbnail, "thumbnail"),
+          renderFormField(tr.videoUrl, "videoUrl"),
+          renderFormField(tr.category, "category"),
+          renderFormField(tr.creators, "creator"),
+        );
+        break;
+      case "partners":
+        fields.push(
+          renderFormField(tr.name, "name"),
+          renderFormField(tr.logo, "logo"),
+          renderFormField(tr.url, "url"),
+        );
+        break;
+      case "merch":
+        fields.push(
+          renderFormField(tr.name, "name"),
+          renderFormField(tr.titleAr, "nameAr"),
+          renderFormField(tr.description, "description", "textarea"),
+          renderFormField(tr.descriptionAr, "descriptionAr", "textarea"),
+          renderFormField(tr.category, "category", "select", [
+            { value: "jersey", label: "Jersey" },
+            { value: "hoodie", label: "Hoodie" },
+            { value: "cap", label: "Cap" },
+            { value: "accessory", label: "Accessory" },
+          ]),
+          renderFormField(tr.price, "price"),
+          renderFormField(tr.image, "image"),
+          renderFormField(tr.colors, "colorsCsv"),
+          renderFormField(tr.sizes, "sizesCsv"),
+          renderFormField(tr.featured, "featured", "checkbox"),
+          renderFormField(tr.available, "available", "checkbox"),
+          renderFormField(tr.sortOrder, "sortOrder", "number"),
+        );
+        break;
+    }
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pe-2">
+        {fields}
+      </div>
+    );
+  };
 
-  const tableRows = (items: Application[]) =>
-    items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      game: item.game || '—',
-      role: item.role || '—',
-      country: item.country || '—',
-      captain: item.captain || '—',
-      players: item.playerCount ?? '—',
-      platform: item.platform || '—',
-      followers: item.followers || '—',
-      date: item.createdAt?.slice(0, 10) || '—',
-      status: item.status as Status,
-      raw: item,
-    }));
+  const openAppDetail = (app: Application) => {
+    setSelectedApp(app);
+    setAppNotes(app.adminNotes || "");
+  };
+
+  const detailRow = (label: string, value: unknown) => (
+    <div className="flex gap-2 py-1.5 border-b border-[#0B3C6D]/20">
+      <span className="font-mono text-xs text-white/40 w-36 flex-shrink-0">{label}</span>
+      <span className="font-body text-sm text-white/80 break-all">{value ? String(value) : "—"}</span>
+    </div>
+  );
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen flex bg-[#080C12]">
+    <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen flex bg-[#0D1117]">
+      {/* Sidebar */}
       <div className="w-60 flex-shrink-0 glass-dark border-e border-[#0B3C6D]/40 flex flex-col">
         <div className="p-5 border-b border-[#0B3C6D]/30 flex items-center gap-3">
           <img src={arcLogo} alt="ARC" className="w-10 h-10 object-contain rounded-full" />
@@ -281,8 +1023,8 @@ export default function AdminDashboard({ lang, onBack }: Props) {
               onClick={() => setSection(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-body transition-all rounded-sm ${
                 section === item.id
-                  ? 'bg-[#F7941D]/15 text-[#F7941D] border-s-2 border-[#F7941D]'
-                  : 'text-white/40 hover:text-white hover:bg-white/5'
+                  ? "bg-[#F7941D]/15 text-[#F7941D] border-s-2 border-[#F7941D]"
+                  : "text-white/40 hover:text-white hover:bg-white/5"
               }`}
             >
               <span>{item.icon}</span>
@@ -302,9 +1044,24 @@ export default function AdminDashboard({ lang, onBack }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* Main */}
+      <div className="flex-1 overflow-y-auto relative">
+        {toast && (
+          <div
+            className={`fixed top-4 ${isRtl ? "left-4" : "right-4"} z-[60] font-mono text-sm px-4 py-3 border ${
+              toast.type === "error"
+                ? "text-red-400 border-red-400/30 bg-red-400/10"
+                : "text-green-400 border-green-400/30 bg-green-400/10"
+            }`}
+          >
+            {toast.msg}
+          </div>
+        )}
+
         <div className="glass-dark border-b border-[#0B3C6D]/30 px-8 py-4 flex items-center justify-between">
-          <h1 className="font-display font-800 text-xl text-white uppercase">{navItems.find((n) => n.id === section)?.label}</h1>
+          <h1 className="font-display font-800 text-xl text-white uppercase">
+            {navItems.find((n) => n.id === section)?.label}
+          </h1>
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="font-mono text-xs text-white/40">
@@ -314,220 +1071,591 @@ export default function AdminDashboard({ lang, onBack }: Props) {
         </div>
 
         <div className="p-8">
-          {section === 'dashboard' && stats && (
+          {/* Dashboard */}
+          {section === "dashboard" && (
             <div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                {[
-                  { label: tr.totalPlayers, value: stats.players, icon: '🎮', color: 'text-[#4A90D9]' },
-                  { label: tr.totalTeams, value: stats.teams, icon: '🛡️', color: 'text-[#F7941D]' },
-                  { label: tr.totalCreators, value: stats.creators, icon: '📹', color: 'text-purple-400' },
-                  { label: tr.newReqs, value: stats.applications.pending, icon: '🔔', color: 'text-yellow-400' },
-                ].map((stat, i) => (
-                  <div key={i} className="glass border border-[#0B3C6D]/40 p-5 arc-card">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl">{stat.icon}</span>
-                      <div className={`font-display font-900 text-3xl ${stat.color}`}>{stat.value}</div>
-                    </div>
-                    <div className="font-mono text-xs text-white/40 uppercase tracking-wider">{stat.label}</div>
+              {loading && !stats ? (
+                <p className="font-mono text-white/30">{tr.loading}</p>
+              ) : stats ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    {[
+                      { label: tr.totalPlayers, value: stats.players, icon: "🎮", color: "text-[#4A90D9]" },
+                      { label: tr.totalTeams, value: stats.teams, icon: "🛡️", color: "text-[#F7941D]" },
+                      { label: tr.totalCreators, value: stats.creators, icon: "📹", color: "text-[#F7941D]" },
+                      { label: tr.newReqs, value: stats.applications.pending, icon: "🔔", color: "text-yellow-400" },
+                    ].map((stat, i) => (
+                      <div key={i} className="glass border border-[#0B3C6D]/40 p-5 arc-card">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-2xl">{stat.icon}</span>
+                          <div className={`font-display font-900 text-3xl ${stat.color}`}>{stat.value}</div>
+                        </div>
+                        <div className="font-mono text-xs text-white/40 uppercase tracking-wider">{stat.label}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+
+                  <div className="glass border border-[#0B3C6D]/40 overflow-hidden mb-6">
+                    <div className="px-5 py-4 border-b border-[#0B3C6D]/30">
+                      <h3 className="font-display font-800 text-base text-white uppercase">{tr.recentActivity}</h3>
+                    </div>
+                    {stats.recent.length === 0 ? (
+                      <div className="p-8 text-center font-mono text-sm text-white/30">{tr.empty}</div>
+                    ) : (
+                      <div className="divide-y divide-[#0B3C6D]/20">
+                        {stats.recent.map((item) => (
+                          <div key={item.id} className="px-5 py-3 flex items-center justify-between">
+                            <div>
+                              <div className="font-body text-sm text-white">{item.name}</div>
+                              <div className="font-mono text-xs text-white/30">
+                                {item.type} · {item.game || item.platform || "—"}
+                              </div>
+                            </div>
+                            {statusBadge(item.status as Status)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {isAdmin && (
+                    <button
+                      onClick={handleClearContent}
+                      className="font-mono text-xs text-red-400 border border-red-400/40 px-4 py-2 hover:bg-red-400/10"
+                    >
+                      {tr.clearContent}
+                    </button>
+                  )}
+                </>
+              ) : (
+                renderEmpty()
+              )}
+            </div>
+          )}
+
+          {/* Applications */}
+          {section === "applications" && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <select
+                  className="arc-select w-auto"
+                  value={appTypeFilter}
+                  onChange={(e) => setAppTypeFilter(e.target.value as AppTypeFilter)}
+                >
+                  <option value="all">{tr.all}</option>
+                  <option value="player">{tr.player}</option>
+                  <option value="team">{tr.team}</option>
+                  <option value="creator">{tr.creator}</option>
+                </select>
+                <select
+                  className="arc-select w-auto"
+                  value={appStatusFilter}
+                  onChange={(e) => setAppStatusFilter(e.target.value as StatusFilter)}
+                >
+                  <option value="all">{tr.all}</option>
+                  <option value="pending">{tr.pending}</option>
+                  <option value="approved">{tr.approved}</option>
+                  <option value="rejected">{tr.rejected}</option>
+                  <option value="suspended">{tr.suspended}</option>
+                </select>
               </div>
 
-              <div className="glass border border-[#0B3C6D]/40 overflow-hidden">
-                <div className="px-5 py-4 border-b border-[#0B3C6D]/30">
-                  <h3 className="font-display font-800 text-base text-white uppercase">{tr.recentActivity}</h3>
+              {loading ? (
+                <p className="font-mono text-white/30">{tr.loading}</p>
+              ) : filteredApps.length === 0 ? (
+                renderEmpty()
+              ) : (
+                <div className="glass border border-[#0B3C6D]/40 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-[#0B3C6D]/30 bg-[#0B3C6D]/10">
+                          {[tr.name, tr.type, tr.game, tr.status, tr.date, tr.actions].map((label) => (
+                            <th
+                              key={label}
+                              className="px-4 py-3 font-mono text-xs text-white/40 uppercase tracking-wider text-start"
+                            >
+                              {label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#0B3C6D]/20">
+                        {filteredApps.map((app) => (
+                          <tr key={app.id} className="hover:bg-[#0B3C6D]/10">
+                            <td className="px-4 py-3 text-sm text-white/70">{app.name}</td>
+                            <td className="px-4 py-3 text-sm text-white/50 font-mono">{app.type}</td>
+                            <td className="px-4 py-3 text-sm text-white/70">{app.game || app.platform || "—"}</td>
+                            <td className="px-4 py-3">{statusBadge(app.status as Status)}</td>
+                            <td className="px-4 py-3 text-sm text-white/50 font-mono">
+                              {app.createdAt?.slice(0, 10) || "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => openAppDetail(app)}
+                                className="font-mono text-xs text-[#F7941D] border border-[#F7941D]/30 px-2.5 py-1"
+                              >
+                                {tr.view}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div className="divide-y divide-[#0B3C6D]/20">
-                  {stats.recent.map((item) => (
-                    <div key={item.id} className="px-5 py-3 flex items-center justify-between">
-                      <div>
-                        <div className="font-body text-sm text-white">{item.name}</div>
-                        <div className="font-mono text-xs text-white/30">{item.type} · {item.game || item.platform || '—'}</div>
-                      </div>
-                      {statusBadge(item.status as Status)}
+              )}
+            </div>
+          )}
+
+          {/* Games */}
+          {section === "games" && (
+            <ContentSection
+              loading={loading}
+              empty={games.length === 0}
+              tr={tr}
+              onAdd={() =>
+                openModal("games", "add", {
+                  slug: "",
+                  name: "",
+                  nameAr: "",
+                  image: "",
+                  players: 0,
+                  tournaments: 0,
+                  desc: "",
+                  descEn: "",
+                })
+              }
+            >
+              <DataTable
+                headers={[tr.name, tr.game, tr.players, tr.actions]}
+                rows={games.map((g) => [
+                  lang === "ar" ? g.nameAr : g.name,
+                  g.slug,
+                  String(g.players),
+                  renderTableActions("games", g.id, () =>
+                    openModal("games", "edit", { ...g }, g.id),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* Roster Players */}
+          {section === "rosterPlayers" && (
+            <ContentSection
+              loading={loading}
+              empty={rosterPlayers.length === 0}
+              tr={tr}
+              onAdd={() =>
+                openModal("rosterPlayers", "add", {
+                  name: "",
+                  game: "",
+                  teamId: null,
+                  country: "",
+                  countryEn: "",
+                  flag: "",
+                  role: "",
+                  rank: "",
+                  image: "",
+                  achievementsCsv: "",
+                  achievementsEnCsv: "",
+                  socialCsv: "",
+                })
+              }
+            >
+              <DataTable
+                headers={[tr.name, tr.game, tr.role, tr.country, tr.actions]}
+                rows={rosterPlayers.map((p) => [
+                  p.name,
+                  p.game,
+                  p.role,
+                  lang === "ar" ? p.country : p.countryEn,
+                  renderTableActions("rosterPlayers", p.id, () =>
+                    openModal(
+                      "rosterPlayers",
+                      "edit",
+                      {
+                        ...p,
+                        achievementsCsv: joinCsv(p.achievements),
+                        achievementsEnCsv: joinCsv(p.achievementsEn),
+                        socialCsv: formatKeyVal(p.social),
+                      },
+                      p.id,
+                    ),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* Roster Teams */}
+          {section === "rosterTeams" && (
+            <ContentSection
+              loading={loading}
+              empty={rosterTeams.length === 0}
+              tr={tr}
+              onAdd={() =>
+                openModal("rosterTeams", "add", {
+                  name: "",
+                  game: "",
+                  gameId: null,
+                  logo: "",
+                  players: 0,
+                  captain: "",
+                  achievementsCsv: "",
+                  achievementsEnCsv: "",
+                  tournamentsCsv: "",
+                })
+              }
+            >
+              <DataTable
+                headers={[tr.name, tr.game, tr.captain, tr.players, tr.actions]}
+                rows={rosterTeams.map((team) => [
+                  team.name,
+                  team.game,
+                  team.captain,
+                  String(team.players),
+                  renderTableActions("rosterTeams", team.id, () =>
+                    openModal(
+                      "rosterTeams",
+                      "edit",
+                      {
+                        ...team,
+                        achievementsCsv: joinCsv(team.achievements),
+                        achievementsEnCsv: joinCsv(team.achievementsEn),
+                        tournamentsCsv: joinCsv(team.tournaments),
+                      },
+                      team.id,
+                    ),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* Creators */}
+          {section === "creators" && (
+            <ContentSection
+              loading={loading}
+              empty={creators.length === 0}
+              tr={tr}
+              onAdd={() =>
+                openModal("creators", "add", {
+                  name: "",
+                  nameAr: "",
+                  bio: "",
+                  bioEn: "",
+                  image: "",
+                  verified: false,
+                  platformsCsv: "",
+                  socialCsv: "",
+                })
+              }
+            >
+              <DataTable
+                headers={[tr.name, tr.verified, tr.actions]}
+                rows={creators.map((c) => [
+                  lang === "ar" ? c.nameAr : c.name,
+                  c.verified ? "✓" : "—",
+                  renderTableActions("creators", c.id, () =>
+                    openModal(
+                      "creators",
+                      "edit",
+                      {
+                        ...c,
+                        platformsCsv: formatKeyVal(c.platforms),
+                        socialCsv: formatKeyVal(c.social),
+                      },
+                      c.id,
+                    ),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* Tournaments */}
+          {section === "tournaments" && (
+            <ContentSection
+              loading={loading}
+              empty={tournaments.length === 0}
+              tr={tr}
+              onAdd={() =>
+                openModal("tournaments", "add", {
+                  name: "",
+                  nameAr: "",
+                  status: "upcoming",
+                  image: "",
+                  game: "",
+                  startDate: "",
+                  endDate: "",
+                  prize: "",
+                  teams: 16,
+                })
+              }
+            >
+              <DataTable
+                headers={[tr.name, tr.game, tr.status, tr.actions]}
+                rows={tournaments.map((item) => [
+                  lang === "ar" ? item.nameAr : item.name,
+                  item.game,
+                  item.status,
+                  renderTableActions("tournaments", item.id, () =>
+                    openModal("tournaments", "edit", { ...item }, item.id),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* News */}
+          {section === "news" && (
+            <ContentSection
+              loading={loading}
+              empty={news.length === 0}
+              tr={tr}
+              onAdd={() =>
+                openModal("news", "add", {
+                  title: "",
+                  titleEn: "",
+                  summary: "",
+                  summaryEn: "",
+                  date: new Date().toISOString().slice(0, 10),
+                  category: "",
+                  categoryEn: "",
+                  image: "",
+                })
+              }
+            >
+              <DataTable
+                headers={[tr.name, tr.date, tr.actions]}
+                rows={news.map((item) => [
+                  lang === "ar" ? item.title : item.titleEn,
+                  item.date,
+                  renderTableActions("news", item.id, () =>
+                    openModal("news", "edit", { ...item }, item.id),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* Media */}
+          {section === "media" && (
+            <ContentSection
+              loading={loading}
+              empty={media.length === 0}
+              tr={tr}
+              onAdd={() =>
+                openModal("media", "add", {
+                  title: "",
+                  titleAr: "",
+                  thumbnail: "",
+                  videoUrl: "",
+                  category: "",
+                  creator: "",
+                })
+              }
+            >
+              <DataTable
+                headers={[tr.name, tr.category, tr.actions]}
+                rows={media.map((item) => [
+                  lang === "ar" ? item.titleAr : item.title,
+                  item.category,
+                  renderTableActions("media", item.id, () =>
+                    openModal("media", "edit", { ...item }, item.id),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* Partners */}
+          {section === "partners" && (
+            <ContentSection
+              loading={loading}
+              empty={partners.length === 0}
+              tr={tr}
+              onAdd={() => openModal("partners", "add", { name: "", logo: "", url: "" })}
+            >
+              <DataTable
+                headers={[tr.name, tr.url, tr.actions]}
+                rows={partners.map((item) => [
+                  item.name,
+                  item.url || "—",
+                  renderTableActions("partners", item.id, () =>
+                    openModal("partners", "edit", { ...item }, item.id),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* Merch */}
+          {section === "merch" && (
+            <ContentSection
+              loading={loading}
+              empty={merch.length === 0}
+              tr={tr}
+              onAdd={() =>
+                openModal("merch", "add", {
+                  name: "",
+                  nameAr: "",
+                  description: "",
+                  descriptionAr: "",
+                  category: "jersey",
+                  price: "",
+                  image: "",
+                  colorsCsv: ARC_COLORS.join(", "),
+                  sizesCsv: "S, M, L, XL",
+                  featured: false,
+                  available: true,
+                  sortOrder: 0,
+                })
+              }
+            >
+              <DataTable
+                headers={[tr.name, tr.category, tr.price, tr.actions]}
+                rows={merch.map((item) => [
+                  lang === "ar" ? item.nameAr : item.name,
+                  item.category,
+                  item.price,
+                  renderTableActions("merch", item.id, () =>
+                    openModal(
+                      "merch",
+                      "edit",
+                      {
+                        ...item,
+                        colorsCsv: joinCsv(item.colors.length ? item.colors : ARC_COLORS),
+                        sizesCsv: joinCsv(item.sizes),
+                      },
+                      item.id,
+                    ),
+                  ),
+                ])}
+              />
+            </ContentSection>
+          )}
+
+          {/* Site Settings */}
+          {section === "site" && (
+            <div>
+              {loading && !site ? (
+                <p className="font-mono text-white/30">{tr.loading}</p>
+              ) : site ? (
+                <div className="glass border border-[#0B3C6D]/40 p-6 space-y-4 max-w-3xl">
+                  <div>
+                    <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{tr.brandName}</label>
+                    <input
+                      className="arc-input"
+                      value={site.brandName}
+                      onChange={(e) => setSite({ ...site, brandName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{tr.taglineAr}</label>
+                    <input
+                      className="arc-input"
+                      value={site.taglineAr}
+                      onChange={(e) => setSite({ ...site, taglineAr: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{tr.taglineEn}</label>
+                    <input
+                      className="arc-input"
+                      value={site.taglineEn}
+                      onChange={(e) => setSite({ ...site, taglineEn: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{tr.contactEmail}</label>
+                    <input
+                      className="arc-input"
+                      value={site.contactEmail || ""}
+                      onChange={(e) => setSite({ ...site, contactEmail: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{tr.heroVideoUrl}</label>
+                    <input
+                      className="arc-input"
+                      value={site.heroVideoUrl || ""}
+                      onChange={(e) => setSite({ ...site, heroVideoUrl: e.target.value })}
+                    />
+                  </div>
+
+                  <h3 className="font-display font-800 text-white uppercase pt-2">{tr.social}</h3>
+                  {(["discord", "tiktok", "youtube", "kick", "twitch", "email"] as const).map((key) => (
+                    <div key={key}>
+                      <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{key}</label>
+                      <input
+                        className="arc-input"
+                        value={site.social?.[key] || ""}
+                        onChange={(e) =>
+                          setSite({ ...site, social: { ...site.social, [key]: e.target.value } })
+                        }
+                      />
                     </div>
                   ))}
+
+                  <h3 className="font-display font-800 text-white uppercase pt-2">{tr.stats}</h3>
+                  {(["players", "teams", "creators", "tournaments"] as const).map((key) => (
+                    <div key={key}>
+                      <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{key}</label>
+                      <input
+                        type="number"
+                        className="arc-input"
+                        value={site.stats?.[key] ?? 0}
+                        onChange={(e) =>
+                          setSite({ ...site, stats: { ...site.stats, [key]: Number(e.target.value) } })
+                        }
+                      />
+                    </div>
+                  ))}
+
+                  <button onClick={saveSite} className="btn-arc text-sm mt-4">
+                    {tr.save}
+                  </button>
                 </div>
-              </div>
+              ) : (
+                renderEmpty()
+              )}
             </div>
           )}
 
-          {section === 'players' && (
-            <ApplicationTable
-              data={tableRows(playerApps)}
-              columns={[
-                { key: 'name', label: tr.name },
-                { key: 'game', label: tr.game },
-                { key: 'role', label: tr.role },
-                { key: 'country', label: tr.country },
-                { key: 'date', label: tr.date },
-              ]}
-              onApprove={(id) => updateStatus(id, 'approved')}
-              onReject={(id) => updateStatus(id, 'rejected')}
-              onView={(row) => setSelected(row.raw)}
-              tr={tr}
-              statusBadge={statusBadge}
-            />
-          )}
-
-          {section === 'teams' && (
-            <ApplicationTable
-              data={tableRows(teamApps)}
-              columns={[
-                { key: 'name', label: tr.name },
-                { key: 'game', label: tr.game },
-                { key: 'captain', label: tr.captain },
-                { key: 'players', label: isRtl ? 'عدد اللاعبين' : 'Players' },
-                { key: 'date', label: tr.date },
-              ]}
-              onApprove={(id) => updateStatus(id, 'approved')}
-              onReject={(id) => updateStatus(id, 'rejected')}
-              onView={(row) => setSelected(row.raw)}
-              tr={tr}
-              statusBadge={statusBadge}
-            />
-          )}
-
-          {section === 'creators' && (
-            <ApplicationTable
-              data={tableRows(creatorApps)}
-              columns={[
-                { key: 'name', label: tr.name },
-                { key: 'platform', label: tr.platform },
-                { key: 'followers', label: tr.followers },
-                { key: 'date', label: tr.date },
-              ]}
-              onApprove={(id) => updateStatus(id, 'approved')}
-              onReject={(id) => updateStatus(id, 'rejected')}
-              onView={(row) => setSelected(row.raw)}
-              tr={tr}
-              statusBadge={statusBadge}
-            />
-          )}
-
-          {section === 'tournaments' && (
-            <div className="space-y-4">
-              <button
-                className="btn-arc text-sm"
-                onClick={async () => {
-                  await api.createTournament({
-                    name: 'New ARC Cup',
-                    nameAr: 'كأس ARC الجديد',
-                    status: 'upcoming',
-                    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=350&fit=crop&auto=format',
-                    game: 'PUBG MOBILE',
-                    startDate: '2026-10-01',
-                    endDate: '2026-10-10',
-                    prize: '$1,000',
-                    teams: 16,
-                  });
-                  await load();
-                }}
-              >
-                {tr.add}
-              </button>
-              <div className="glass border border-[#0B3C6D]/40 overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#0B3C6D]/30 bg-[#0B3C6D]/10">
-                      {[tr.name, tr.game, tr.status, tr.actions].map((label) => (
-                        <th key={label} className="px-4 py-3 font-mono text-xs text-white/40 uppercase tracking-wider text-start">{label}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#0B3C6D]/20">
-                    {tournaments.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-4 py-3 text-sm text-white/70">{lang === 'ar' ? item.nameAr : item.name}</td>
-                        <td className="px-4 py-3 text-sm text-white/70">{item.game}</td>
-                        <td className="px-4 py-3 text-sm text-white/70">{item.status}</td>
-                        <td className="px-4 py-3">
-                          <button className="font-mono text-xs text-red-400 border border-red-400/30 px-2.5 py-1" onClick={async () => { await api.deleteTournament(item.id); await load(); }}>
-                            {tr.delete}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {section === 'news' && (
-            <div className="space-y-4">
-              <button
-                className="btn-arc text-sm"
-                onClick={async () => {
-                  await api.createNews({
-                    title: 'خبر جديد من ARC',
-                    titleEn: 'New ARC Announcement',
-                    summary: 'تحديث جديد من إدارة ARC Esports',
-                    summaryEn: 'A new update from ARC Esports management',
-                    date: new Date().toISOString().slice(0, 10),
-                    category: 'تحديثات',
-                    categoryEn: 'Updates',
-                    image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&h=300&fit=crop&auto=format',
-                  });
-                  await load();
-                }}
-              >
-                {tr.add}
-              </button>
-              <div className="glass border border-[#0B3C6D]/40 overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#0B3C6D]/30 bg-[#0B3C6D]/10">
-                      {[tr.name, tr.date, tr.actions].map((label) => (
-                        <th key={label} className="px-4 py-3 font-mono text-xs text-white/40 uppercase tracking-wider text-start">{label}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#0B3C6D]/20">
-                    {news.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-4 py-3 text-sm text-white/70">{lang === 'ar' ? item.title : item.titleEn}</td>
-                        <td className="px-4 py-3 text-sm text-white/70">{item.date}</td>
-                        <td className="px-4 py-3">
-                          <button className="font-mono text-xs text-red-400 border border-red-400/30 px-2.5 py-1" onClick={async () => { await api.deleteNews(item.id); await load(); }}>
-                            {tr.delete}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {section === 'site' && site && (
-            <div className="glass border border-[#0B3C6D]/40 p-6 space-y-4 max-w-2xl">
-              <div>
-                <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">Brand</label>
-                <input className="arc-input" value={site.brandName} onChange={(e) => setSite({ ...site, brandName: e.target.value })} />
-              </div>
-              <div>
-                <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">Tagline AR</label>
-                <input className="arc-input" value={site.taglineAr} onChange={(e) => setSite({ ...site, taglineAr: e.target.value })} />
-              </div>
-              <div>
-                <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">Email</label>
-                <input className="arc-input" value={site.contactEmail || ''} onChange={(e) => setSite({ ...site, contactEmail: e.target.value })} />
-              </div>
-              <button className="btn-arc text-sm" onClick={async () => setSite(await api.updateSite(site))}>{tr.save}</button>
-            </div>
-          )}
-
-          {section === 'users' && user.role === 'admin' && (
+          {/* Users */}
+          {section === "users" && isAdmin && (
             <div className="space-y-6">
               <div className="glass border border-[#0B3C6D]/40 p-6 max-w-2xl space-y-4">
                 <h3 className="font-display font-800 text-lg text-white uppercase">{tr.addSupervisor}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input className="arc-input" placeholder={tr.supervisorName} value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} />
-                  <input className="arc-input" type="email" placeholder={tr.email} value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
-                  <input className="arc-input" type="password" placeholder={tr.password} value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} />
-                  <select className="arc-select" value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
+                  <input
+                    className="arc-input"
+                    placeholder={tr.supervisorName}
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  />
+                  <input
+                    className="arc-input"
+                    type="email"
+                    placeholder={tr.email}
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  />
+                  <input
+                    className="arc-input"
+                    type="password"
+                    placeholder={tr.password}
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  />
+                  <select
+                    className="arc-select"
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  >
                     <option value="supervisor">Supervisor</option>
                     <option value="admin">Admin</option>
                   </select>
@@ -536,72 +1664,176 @@ export default function AdminDashboard({ lang, onBack }: Props) {
                   className="btn-arc text-sm"
                   onClick={async () => {
                     if (!newUser.name || !newUser.email || !newUser.password) return;
-                    await api.createUser(newUser);
-                    setNewUser({ name: '', email: '', password: '', role: 'supervisor' });
-                    await load();
+                    try {
+                      await api.createUser(newUser);
+                      setNewUser({ name: "", email: "", password: "", role: "supervisor" });
+                      await load();
+                      showSuccess();
+                    } catch (err) {
+                      showError(err);
+                    }
                   }}
                 >
                   {tr.add}
                 </button>
               </div>
 
-              <div className="glass border border-[#0B3C6D]/40 overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#0B3C6D]/30 bg-[#0B3C6D]/10">
-                      {[tr.name, tr.email, tr.role, tr.status, tr.actions].map((label) => (
-                        <th key={label} className="px-4 py-3 font-mono text-xs text-white/40 uppercase tracking-wider text-start">{label}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#0B3C6D]/20">
-                    {users.map((u) => (
-                      <tr key={u.id}>
-                        <td className="px-4 py-3 text-sm text-white/70">{u.name}</td>
-                        <td className="px-4 py-3 text-sm text-white/70">{u.email}</td>
-                        <td className="px-4 py-3 text-sm text-white/70">{u.role}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={u.active ? 'badge-active' : 'badge-rejected'}>
-                            {u.active ? tr.active : tr.inactive}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {u.role !== 'admin' && (
-                            <button
-                              className="font-mono text-xs text-[#F7941D] border border-[#F7941D]/30 px-2.5 py-1"
-                              onClick={async () => {
-                                await api.setUserActive(u.id, !u.active);
-                                await load();
-                              }}
-                            >
-                              {u.active ? tr.deactivate : tr.activate}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {users.length === 0 ? (
+                renderEmpty()
+              ) : (
+                <DataTable
+                  headers={[tr.name, tr.email, tr.role, tr.status, tr.actions]}
+                  rows={users.map((u) => [
+                    u.name,
+                    u.email,
+                    u.role,
+                    <span key="s" className={u.active ? "badge-active" : "badge-rejected"}>
+                      {u.active ? tr.active : tr.inactive}
+                    </span>,
+                    u.role !== "admin" ? (
+                      <button
+                        key="a"
+                        className="font-mono text-xs text-[#F7941D] border border-[#F7941D]/30 px-2.5 py-1"
+                        onClick={async () => {
+                          try {
+                            await api.setUserActive(u.id, !u.active);
+                            await load();
+                            showSuccess();
+                          } catch (err) {
+                            showError(err);
+                          }
+                        }}
+                      >
+                        {u.active ? tr.deactivate : tr.activate}
+                      </button>
+                    ) : (
+                      "—"
+                    ),
+                  ])}
+                />
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {selected && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-          <div className="glass-dark border border-[#0B3C6D]/50 max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display font-900 text-2xl text-white uppercase mb-4">{selected.name}</h3>
-            <div className="space-y-2 text-sm text-white/70">
-              <div>Type: {selected.type}</div>
-              <div>Status: {selected.status}</div>
-              <div>Email: {selected.email || '—'}</div>
-              <div>Discord: {selected.discord || '—'}</div>
-              <div>Game: {selected.game || '—'}</div>
+      {/* Application Detail Drawer */}
+      {selectedApp && (
+        <div className="fixed inset-0 z-50 flex" onClick={() => setSelectedApp(null)}>
+          <div className="flex-1 bg-black/60" />
+          <div
+            className={`w-full max-w-xl glass-dark border-${isRtl ? "e" : "s"} border-[#0B3C6D]/50 h-full overflow-y-auto p-6`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h3 className="font-display font-900 text-2xl text-white uppercase">{selectedApp.name}</h3>
+                <div className="flex gap-2 mt-2">
+                  <span className="font-mono text-xs text-white/40">{selectedApp.type}</span>
+                  {statusBadge(selectedApp.status as Status)}
+                </div>
+              </div>
+              <button onClick={() => setSelectedApp(null)} className="font-mono text-xs text-white/40 hover:text-white">
+                {tr.close}
+              </button>
             </div>
-            <div className="flex gap-2 mt-6">
-              <button className="btn-arc text-sm" onClick={() => updateStatus(selected.id, 'approved').then(() => setSelected(null))}>{tr.approve}</button>
-              <button className="btn-arc-outline text-sm" onClick={() => updateStatus(selected.id, 'rejected').then(() => setSelected(null))}>{tr.reject}</button>
+
+            <div className="mb-6">
+              {detailRow(tr.name, selectedApp.name)}
+              {detailRow(tr.email, selectedApp.email)}
+              {detailRow(tr.discord, selectedApp.discord)}
+              {detailRow(tr.country, selectedApp.country)}
+              {detailRow(tr.age, selectedApp.age)}
+              {detailRow(tr.game, selectedApp.game)}
+              {detailRow(tr.role, selectedApp.role)}
+              {detailRow(tr.accountId, selectedApp.accountId)}
+              {detailRow(tr.uid, selectedApp.uid)}
+              {detailRow(tr.rank, selectedApp.rank)}
+              {detailRow(tr.achievements, selectedApp.achievements)}
+              {detailRow(tr.profileLink, selectedApp.profileLink)}
+              {detailRow(tr.message, selectedApp.message)}
+              {detailRow(tr.teamName, selectedApp.teamName)}
+              {detailRow(tr.captain, selectedApp.captain)}
+              {detailRow(tr.playerCount, selectedApp.playerCount)}
+              {detailRow(tr.platform, selectedApp.platform)}
+              {detailRow(tr.followers, selectedApp.followers)}
+              {detailRow(tr.platforms, formatKeyVal(selectedApp.platforms))}
+              {detailRow(tr.social, formatKeyVal(selectedApp.social))}
+              {detailRow(tr.avgViews, selectedApp.avgViews)}
+              {detailRow(tr.avgLive, selectedApp.avgLive)}
+              {detailRow(tr.bio, selectedApp.bio)}
+              {detailRow(tr.type, selectedApp.type)}
+              {detailRow(tr.status, selectedApp.status)}
+              {detailRow(tr.createdAt, selectedApp.createdAt?.slice(0, 19))}
+              {detailRow(tr.updatedAt, selectedApp.updatedAt?.slice(0, 19))}
+            </div>
+
+            <div className="mb-6">
+              <label className="font-mono text-xs text-white/40 uppercase mb-1.5 block">{tr.adminNotes}</label>
+              <textarea
+                className="arc-input min-h-[100px]"
+                value={appNotes}
+                onChange={(e) => setAppNotes(e.target.value)}
+              />
+              <button onClick={saveAppNotes} className="btn-arc-outline text-xs mt-2 px-3 py-1.5">
+                {tr.save}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {selectedApp.status !== "approved" && (
+                <button
+                  className="btn-arc text-sm"
+                  onClick={() => updateAppStatus(selectedApp.id, "approved")}
+                >
+                  {tr.approve}
+                </button>
+              )}
+              {selectedApp.status !== "rejected" && (
+                <button
+                  className="btn-arc-outline text-sm"
+                  onClick={() => updateAppStatus(selectedApp.id, "rejected")}
+                >
+                  {tr.reject}
+                </button>
+              )}
+              {selectedApp.status !== "suspended" && (
+                <button
+                  className="font-mono text-xs text-yellow-400 border border-yellow-400/30 px-3 py-2"
+                  onClick={() => updateAppStatus(selectedApp.id, "suspended")}
+                >
+                  {tr.suspend}
+                </button>
+              )}
+              <button
+                className="font-mono text-xs text-red-400 border border-red-400/30 px-3 py-2"
+                onClick={() => deleteApp(selectedApp.id)}
+              >
+                {tr.delete}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CRUD Modal */}
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={closeModal}>
+          <div
+            className="glass-dark border border-[#0B3C6D]/50 max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-display font-900 text-xl text-white uppercase mb-4">
+              {modal.mode === "add" ? tr.add : tr.edit}
+            </h3>
+            {renderModalForm()}
+            <div className="flex gap-3 mt-6">
+              <button onClick={handleModalSave} disabled={saving} className="btn-arc text-sm">
+                {saving ? "..." : tr.save}
+              </button>
+              <button onClick={closeModal} className="btn-arc-outline text-sm">
+                {tr.cancel}
+              </button>
             </div>
           </div>
         </div>
@@ -610,16 +1842,43 @@ export default function AdminDashboard({ lang, onBack }: Props) {
   );
 }
 
-function ApplicationTable({
-  data, columns, onApprove, onReject, onView, tr, statusBadge,
+function ContentSection({
+  loading,
+  empty,
+  tr,
+  onAdd,
+  children,
 }: {
-  data: Array<Record<string, unknown> & { id: number; status: Status; raw: Application }>;
-  columns: { key: string; label: string }[];
-  onApprove: (id: number) => void;
-  onReject: (id: number) => void;
-  onView: (row: { raw: Application }) => void;
-  tr: typeof t['en'];
-  statusBadge: (s: Status) => React.ReactElement;
+  loading: boolean;
+  empty: boolean;
+  tr: (typeof t)["en"];
+  onAdd: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <button onClick={onAdd} className="btn-arc text-sm">
+        {tr.add}
+      </button>
+      {loading ? (
+        <p className="font-mono text-white/30">{tr.loading}</p>
+      ) : empty ? (
+        <div className="glass border border-[#0B3C6D]/40 p-12 text-center">
+          <p className="font-mono text-sm text-white/30">{tr.empty}</p>
+        </div>
+      ) : (
+        children
+      )}
+    </div>
+  );
+}
+
+function DataTable({
+  headers,
+  rows,
+}: {
+  headers: string[];
+  rows: React.ReactNode[][];
 }) {
   return (
     <div className="glass border border-[#0B3C6D]/40 overflow-hidden">
@@ -627,31 +1886,24 @@ function ApplicationTable({
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#0B3C6D]/30 bg-[#0B3C6D]/10">
-              {columns.map((col) => (
-                <th key={col.key} className="px-4 py-3 font-mono text-xs text-white/40 uppercase tracking-wider text-start">{col.label}</th>
+              {headers.map((label) => (
+                <th
+                  key={label}
+                  className="px-4 py-3 font-mono text-xs text-white/40 uppercase tracking-wider text-start"
+                >
+                  {label}
+                </th>
               ))}
-              <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase tracking-wider text-start">{tr.status}</th>
-              <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase tracking-wider text-start">{tr.actions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#0B3C6D]/20">
-            {data.map((row) => (
-              <tr key={row.id} className="hover:bg-[#0B3C6D]/10 transition-colors">
-                {columns.map((col) => (
-                  <td key={col.key} className="px-4 py-3 font-body text-sm text-white/70">{String(row[col.key] ?? '')}</td>
+            {rows.map((row, i) => (
+              <tr key={i} className="hover:bg-[#0B3C6D]/10">
+                {row.map((cell, j) => (
+                  <td key={j} className="px-4 py-3 font-body text-sm text-white/70">
+                    {cell}
+                  </td>
                 ))}
-                <td className="px-4 py-3">{statusBadge(row.status)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {row.status !== 'approved' && (
-                      <button onClick={() => onApprove(row.id)} className="font-mono text-xs text-green-400 border border-green-400/30 px-2.5 py-1">{tr.approve}</button>
-                    )}
-                    {row.status !== 'rejected' && (
-                      <button onClick={() => onReject(row.id)} className="font-mono text-xs text-red-400 border border-red-400/30 px-2.5 py-1">{tr.reject}</button>
-                    )}
-                    <button onClick={() => onView(row)} className="font-mono text-xs text-white/30 border border-white/10 px-2.5 py-1">{tr.view}</button>
-                  </div>
-                </td>
               </tr>
             ))}
           </tbody>

@@ -31,6 +31,18 @@ async function request<T>(path: string, options?: RequestInit & { auth?: boolean
   return res.json() as Promise<T>;
 }
 
+function crud<T>(base: string) {
+  return {
+    list: (query?: string) => request<T[]>(query ? `${base}${query}` : base, { auth: false }),
+    create: (data: Partial<T>) =>
+      request<T>(base, { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<T>) =>
+      request<T>(`${base}/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    remove: (id: number) =>
+      request<{ ok: boolean }>(`${base}/${id}`, { method: 'DELETE' }),
+  };
+}
+
 export type Game = {
   id: number;
   slug: string;
@@ -47,6 +59,7 @@ export type Team = {
   id: number;
   name: string;
   game: string;
+  gameId?: number | null;
   logo: string;
   players: number;
   captain: string;
@@ -59,6 +72,7 @@ export type Player = {
   id: number;
   name: string;
   game: string;
+  teamId?: number | null;
   country: string;
   countryEn: string;
   flag: string;
@@ -137,6 +151,7 @@ export type MerchItem = {
   sizes: string[];
   featured: boolean;
   available: boolean;
+  sortOrder?: number;
 };
 
 export type Application = {
@@ -168,6 +183,7 @@ export type Application = {
   bio?: string | null;
   adminNotes?: string | null;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type DashboardStats = {
@@ -206,36 +222,70 @@ export type AdminUser = {
   createdAt?: string;
 };
 
+const gamesApi = crud<Game>('/games');
+const teamsApi = crud<Team>('/teams');
+const playersApi = crud<Player>('/players');
+const creatorsApi = crud<Creator>('/creators');
+const tournamentsApi = crud<Tournament>('/tournaments');
+const newsApi = crud<NewsItem>('/news');
+const partnersApi = crud<Partner>('/partners');
+const mediaApi = crud<MediaItem>('/media');
+const merchApi = crud<MerchItem>('/merch');
+
 export const api = {
-  games: () => request<Game[]>('/games', { auth: false }),
-  teams: () => request<Team[]>('/teams', { auth: false }),
-  team: (id: number) => request<Team>(`/teams/${id}`, { auth: false }),
-  players: () => request<Player[]>('/players', { auth: false }),
-  creators: () => request<Creator[]>('/creators', { auth: false }),
+  games: () => gamesApi.list(),
+  createGame: gamesApi.create,
+  updateGame: gamesApi.update,
+  deleteGame: gamesApi.remove,
+
+  teams: () => teamsApi.list(),
+  createTeam: teamsApi.create,
+  updateTeam: teamsApi.update,
+  deleteTeam: teamsApi.remove,
+
+  players: () => playersApi.list(),
+  createPlayer: playersApi.create,
+  updatePlayer: playersApi.update,
+  deletePlayer: playersApi.remove,
+
+  creators: () => creatorsApi.list(),
+  createCreator: creatorsApi.create,
+  updateCreator: creatorsApi.update,
+  deleteCreator: creatorsApi.remove,
+
   tournaments: (status?: string) =>
-    request<Tournament[]>(status ? `/tournaments?status=${status}` : '/tournaments', { auth: false }),
-  tournament: (id: number) => request<Tournament>(`/tournaments/${id}`, { auth: false }),
-  createTournament: (data: Partial<Tournament>) =>
-    request<Tournament>('/tournaments', { method: 'POST', body: JSON.stringify(data) }),
-  updateTournament: (id: number, data: Partial<Tournament>) =>
-    request<Tournament>(`/tournaments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteTournament: (id: number) =>
-    request<{ ok: boolean }>(`/tournaments/${id}`, { method: 'DELETE' }),
-  news: () => request<NewsItem[]>('/news', { auth: false }),
-  createNews: (data: Partial<NewsItem>) =>
-    request<NewsItem>('/news', { method: 'POST', body: JSON.stringify(data) }),
-  updateNews: (id: number, data: Partial<NewsItem>) =>
-    request<NewsItem>(`/news/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteNews: (id: number) =>
-    request<{ ok: boolean }>(`/news/${id}`, { method: 'DELETE' }),
-  partners: () => request<Partner[]>('/partners', { auth: false }),
+    tournamentsApi.list(status ? `?status=${status}` : undefined),
+  createTournament: tournamentsApi.create,
+  updateTournament: tournamentsApi.update,
+  deleteTournament: tournamentsApi.remove,
+
+  news: () => newsApi.list(),
+  createNews: newsApi.create,
+  updateNews: newsApi.update,
+  deleteNews: newsApi.remove,
+
+  partners: () => partnersApi.list(),
+  createPartner: partnersApi.create,
+  updatePartner: partnersApi.update,
+  deletePartner: partnersApi.remove,
+
   media: (category?: string) =>
-    request<MediaItem[]>(category ? `/media?category=${category}` : '/media', { auth: false }),
+    mediaApi.list(category ? `?category=${category}` : undefined),
+  createMedia: mediaApi.create,
+  updateMedia: mediaApi.update,
+  deleteMedia: mediaApi.remove,
+
   merch: (category?: string) =>
-    request<MerchItem[]>(category ? `/merch?category=${category}` : '/merch', { auth: false }),
+    merchApi.list(category ? `?category=${category}` : undefined),
+  merchAll: () => request<MerchItem[]>('/merch/admin/all'),
+  createMerch: merchApi.create,
+  updateMerch: merchApi.update,
+  deleteMerch: merchApi.remove,
+
   site: () => request<SiteSettings>('/site', { auth: false }),
   updateSite: (data: Partial<SiteSettings>) =>
     request<SiteSettings>('/site', { method: 'PATCH', body: JSON.stringify(data) }),
+
   applications: (type?: string) =>
     request<Application[]>(type ? `/applications?type=${type}` : '/applications'),
   submitApplication: (data: Record<string, unknown>) =>
@@ -249,7 +299,18 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status, adminNotes }),
     }),
+  updateApplication: (id: number, data: Partial<Application>) =>
+    request<Application>(`/applications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteApplication: (id: number) =>
+    request<{ ok: boolean }>(`/applications/${id}`, { method: 'DELETE' }),
+
   dashboard: () => request<DashboardStats>('/admin/dashboard'),
+  clearContent: () =>
+    request<{ ok: boolean; message: string }>('/admin/clear-content', { method: 'POST' }),
+
   login: (email: string, password: string) =>
     request<{ accessToken: string; user: AdminUser }>('/auth/login', {
       method: 'POST',

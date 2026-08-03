@@ -1,4 +1,3 @@
-import { news as fallbackNews } from '@/data/mockData';
 import type { Lang } from '@/data/mockData';
 import { api } from '@/lib/api';
 import { useFetch } from '@/hooks/useFetch';
@@ -13,7 +12,7 @@ interface Props { lang: Lang; }
 export default function NewsSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
-  const { data: news } = useFetch(api.news, fallbackNews as any);
+  const { data: news } = useFetch(api.news, []);
 
   return (
     <section id="news" dir={isRtl ? 'rtl' : 'ltr'} className="relative py-24 overflow-hidden">

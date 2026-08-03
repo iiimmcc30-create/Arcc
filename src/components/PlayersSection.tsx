@@ -1,4 +1,3 @@
-import { players as fallbackPlayers } from '@/data/mockData';
 import type { Lang } from '@/data/mockData';
 import { api } from '@/lib/api';
 import { useFetch } from '@/hooks/useFetch';
@@ -13,7 +12,7 @@ interface Props { lang: Lang; }
 export default function PlayersSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
-  const { data: players } = useFetch(api.players, fallbackPlayers as any);
+  const { data: players } = useFetch(api.players, []);
 
   return (
     <section id="players" dir={isRtl ? 'rtl' : 'ltr'} className="relative py-24 overflow-hidden">

@@ -1,5 +1,4 @@
 import React from 'react';
-import { creators as fallbackCreators } from '@/data/mockData';
 import type { Lang } from '@/data/mockData';
 import { api } from '@/lib/api';
 import { useFetch } from '@/hooks/useFetch';
@@ -24,7 +23,7 @@ const PlatformIcon = ({ platform }: { platform: string }) => {
 export default function ContentCreatorsSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
-  const { data: creators } = useFetch(api.creators, fallbackCreators as any);
+  const { data: creators } = useFetch(api.creators, []);
 
   return (
     <section id="creators" dir={isRtl ? 'rtl' : 'ltr'} className="relative py-24 overflow-hidden">

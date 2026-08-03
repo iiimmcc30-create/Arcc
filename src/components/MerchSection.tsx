@@ -7,8 +7,8 @@ import { useFetch } from '@/hooks/useFetch';
 const t = {
   ar: {
     title: 'الزي الرسمي',
-    subtitle: 'هوية ARC على أرض الملعب',
-    lead: 'تشكيلة رسمية تحمل شعار ARC وألوان المنظمة — مصممة للأبطال وصناع المحتوى.',
+    subtitle: 'طقم ARC الرسمي',
+    lead: 'هوية بصرية على أرض الملعب — أزرق ARC، برتقالي الشعلة، وشعار المنظمة.',
     all: 'الكل',
     jersey: 'جيرسي',
     hoodie: 'هودي',
@@ -17,13 +17,16 @@ const t = {
     sizes: 'المقاسات',
     colors: 'الألوان',
     order: 'اطلب الآن',
-    featured: 'أساسي',
-    brandNote: 'كل قطعة تحمل الشعار الرسمي وهوية ARC البصرية.',
+    featured: 'توقيع ARC',
+    brandNote: 'يُدار من لوحة التحكم — أضف القطع الرسمية من قسم المتجر.',
+    empty: 'لم يُضف الزي الرسمي بعد. سيظهر هنا فور إضافته من لوحة التحكم.',
+    home: 'جيرسي الأساسي',
+    away: 'طقم الضيف',
   },
   en: {
     title: 'Official Kit',
-    subtitle: 'ARC Identity On The Field',
-    lead: 'Official collection carrying the ARC crest and brand colors — built for champions and creators.',
+    subtitle: 'ARC Match Kit',
+    lead: 'Brand identity on the field — ARC navy, flame orange, and the official crest.',
     all: 'All',
     jersey: 'Jersey',
     hoodie: 'Hoodie',
@@ -32,10 +35,75 @@ const t = {
     sizes: 'Sizes',
     colors: 'Colors',
     order: 'Order Now',
-    featured: 'Signature',
-    brandNote: 'Every piece carries the official crest and ARC visual identity.',
+    featured: 'ARC Signature',
+    brandNote: 'Managed from the admin dashboard — add official pieces in Merch.',
+    empty: 'Official kit not added yet. It will appear here once created in the admin panel.',
+    home: 'Home Jersey',
+    away: 'Away Kit',
   },
 };
+
+function KitCanvas({ label, variant }: { label: string; variant: 'home' | 'away' }) {
+  const home = variant === 'home';
+  return (
+    <div className="relative aspect-[4/5] overflow-hidden border border-[#0B3C6D]/50 bg-[#070A0F]">
+      <div
+        className="absolute inset-0"
+        style={{
+          background: home
+            ? 'linear-gradient(160deg, #0B3C6D 0%, #071F38 45%, #0D1117 100%)'
+            : 'linear-gradient(160deg, #F5F7FA 0%, #D7DEE8 40%, #8FA3BC 100%)',
+        }}
+      />
+      <div
+        className="absolute inset-x-[18%] top-[12%] bottom-[10%] rounded-[28%_28%_18%_18%/12%_12%_8%_8%] border"
+        style={{
+          borderColor: home ? 'rgba(247,148,29,0.55)' : 'rgba(11,60,109,0.55)',
+          background: home
+            ? 'linear-gradient(180deg, rgba(23,76,143,0.95), rgba(11,60,109,0.98))'
+            : 'linear-gradient(180deg, #ffffff, #e8eef6)',
+          boxShadow: home
+            ? 'inset 0 0 40px rgba(247,148,29,0.15)'
+            : 'inset 0 0 40px rgba(11,60,109,0.12)',
+        }}
+      >
+        <div
+          className="absolute left-0 top-[28%] bottom-[28%] w-2"
+          style={{ background: '#F7941D' }}
+        />
+        <div
+          className="absolute right-0 top-[28%] bottom-[28%] w-2"
+          style={{ background: '#F7941D' }}
+        />
+        <div className="absolute inset-x-0 top-[22%] flex flex-col items-center">
+          <img
+            src={arcLogo}
+            alt="ARC"
+            className="w-16 h-16 md:w-20 md:h-20 object-contain rounded-full border border-[#F7941D]/50 bg-[#0D1117]/30"
+          />
+          <div
+            className="mt-3 font-display font-900 text-2xl md:text-3xl tracking-[0.2em] uppercase"
+            style={{ color: home ? '#FFFFFF' : '#0B3C6D' }}
+          >
+            ARC
+          </div>
+        </div>
+        <div
+          className="absolute inset-x-0 bottom-[14%] text-center font-mono text-[10px] tracking-[0.35em] uppercase"
+          style={{ color: home ? 'rgba(255,255,255,0.55)' : 'rgba(11,60,109,0.55)' }}
+        >
+          Esports
+        </div>
+      </div>
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-white/70 bg-[#0D1117]/70 px-2 py-1 border border-[#F7941D]/40">
+          {label}
+        </span>
+        <span className="font-mono text-[10px] text-[#F7941D]">#0B3C6D · #F7941D</span>
+      </div>
+    </div>
+  );
+}
 
 interface Props { lang: Lang; }
 
@@ -50,7 +118,7 @@ export default function MerchSection({ lang }: Props) {
 
   return (
     <section id="merch" dir={isRtl ? 'rtl' : 'ltr'} className="relative py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0B3C6D]/20 via-transparent to-[#F7941D]/5" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0B3C6D]/25 via-transparent to-[#F7941D]/8" />
       <div className="absolute inset-0 grid-bg opacity-25" />
       <div className="absolute top-0 left-0 right-0 arc-divider" />
 
@@ -67,6 +135,12 @@ export default function MerchSection({ lang }: Props) {
           <h2 className="font-display font-900 text-5xl md:text-6xl text-white uppercase mb-4">{tr.subtitle}</h2>
           <p className="font-body text-white/55 max-w-2xl mx-auto leading-relaxed">{tr.lead}</p>
           <p className="font-mono text-xs text-[#F7941D]/80 mt-3 uppercase tracking-wider">{tr.brandNote}</p>
+        </div>
+
+        {/* Brand kit canvas — visual identity anchor */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-14">
+          <KitCanvas label={tr.home} variant="home" />
+          <KitCanvas label={tr.away} variant="away" />
         </div>
 
         <div className="flex flex-wrap justify-center gap-3 mb-10">
@@ -87,7 +161,7 @@ export default function MerchSection({ lang }: Props) {
 
         {(loading || error || filtered.length === 0) && (
           <div className="text-center font-mono text-sm text-white/40 mb-8">
-            {loading ? '...' : error || (isRtl ? 'لا توجد منتجات حالياً' : 'No products available')}
+            {loading ? '...' : error || tr.empty}
           </div>
         )}
 
@@ -95,7 +169,7 @@ export default function MerchSection({ lang }: Props) {
           {filtered.map((item) => (
             <article
               key={item.id}
-              className="arc-card group overflow-hidden border border-[#0B3C6D]/40 bg-[#0D1117] relative"
+              className="group overflow-hidden border border-[#0B3C6D]/40 bg-[#0D1117] relative"
             >
               <div className="relative h-72 overflow-hidden">
                 <img
