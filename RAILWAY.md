@@ -20,6 +20,9 @@ ADMIN_NAME=ARC Admin
 NODE_ENV=production
 ```
 
+In the Railway UI: open the **web service → Variables → Add Variable → Variable Reference → Postgres → DATABASE_URL**.
+Also ensure a **PostgreSQL** plugin exists in the same project/environment.
+
 ### Important
 
 | Variable | Notes |
