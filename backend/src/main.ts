@@ -2,10 +2,56 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { createServer } from 'node:http';
 import { join } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
+import { listPresentDbEnvKeys } from './database/resolve-database-url';
+
+function startDiagnosticServer(err: unknown) {
+  const port = Number(process.env.PORT) || 3001;
+  const message = err instanceof Error ? err.message : String(err);
+  const present = listPresentDbEnvKeys(process.env);
+  const publicDir = join(__dirname, '..', 'public');
+  const payload = {
+    status: 'boot_error',
+    database: 'down',
+    error: message,
+    dbEnvKeys: present,
+    hint: 'Set DATABASE_URL=${{Postgres.DATABASE_URL}} on this Railway service (Variables). Do not set PORT or DB_SSL for the private URL.',
+    time: new Date().toISOString(),
+  };
+
+  console.error('Fatal bootstrap error — starting diagnostic HTTP server so Railway healthcheck can surface it.');
+  console.error(payload);
+
+  const server = createServer((req, res) => {
+    const url = req.url || '/';
+    if (url.startsWith('/api/health') || url.startsWith('/api/games')) {
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(payload));
+      return;
+    }
+    if (url.startsWith('/api')) {
+      res.writeHead(503, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(payload));
+      return;
+    }
+    const indexPath = join(publicDir, 'index.html');
+    if (existsSync(indexPath) && (req.method === 'GET' || req.method === 'HEAD')) {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(readFileSync(indexPath));
+      return;
+    }
+    res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end(`ARC boot error: ${message}`);
+  });
+
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Diagnostic server listening on http://0.0.0.0:${port}/api/health`);
+  });
+}
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -41,6 +87,5 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => {
-  console.error('Fatal bootstrap error:', err);
-  process.exit(1);
+  startDiagnosticServer(err);
 });

@@ -19,6 +19,10 @@ import {
   describeDatabaseTarget,
   resolvePostgresSsl,
 } from './database/postgres-ssl';
+import {
+  listPresentDbEnvKeys,
+  resolveDatabaseUrl,
+} from './database/resolve-database-url';
 import { GamesModule } from './modules/games/games.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { PlayersModule } from './modules/players/players.module';
@@ -41,18 +45,20 @@ import { SeedModule } from './modules/seed/seed.module';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const databaseUrl = config.get<string>('DATABASE_URL');
+        const databaseUrl = resolveDatabaseUrl(process.env);
         const isProd = config.get<string>('NODE_ENV') === 'production';
+        const present = listPresentDbEnvKeys(process.env);
 
         if (isProd && !databaseUrl) {
           throw new Error(
-            'DATABASE_URL is required in production. Link the Railway Postgres plugin and set DATABASE_URL=${{Postgres.DATABASE_URL}} on this service.',
+            `DATABASE_URL is required in production. Present DB-related env keys: [${present.join(', ') || 'none'}]. ` +
+              'On the Railway web service Variables tab, set DATABASE_URL=${{Postgres.DATABASE_URL}} (and add a Postgres plugin if missing).',
           );
         }
 
         const ssl = resolvePostgresSsl(databaseUrl, config.get<string>('DB_SSL'));
         console.log(
-          `[db] target=${describeDatabaseTarget(databaseUrl)} ssl=${ssl ? 'on' : 'off'}`,
+          `[db] target=${describeDatabaseTarget(databaseUrl)} ssl=${ssl ? 'on' : 'off'} envKeys=[${present.join(', ')}]`,
         );
 
         const common = {
@@ -72,8 +78,9 @@ import { SeedModule } from './modules/seed/seed.module';
           ],
           synchronize: true,
           ssl,
-          retryAttempts: 10,
-          retryDelay: 3000,
+          // Fail faster so Railway logs show the real error within healthcheck window.
+          retryAttempts: isProd ? 5 : 10,
+          retryDelay: 2000,
         };
 
         if (databaseUrl) {
