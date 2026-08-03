@@ -1,30 +1,50 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import { runSeed } from '../../seed/seed';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcryptjs';
+import { Repository } from 'typeorm';
+import { User } from '../../entities/user.entity';
 
+/**
+ * On boot, only ensure the admin account exists.
+ * Content is managed exclusively from the admin dashboard (no demo seed).
+ */
 @Injectable()
 export class SeedBootstrapService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SeedBootstrapService.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(@InjectRepository(User) private readonly users: Repository<User>) {}
 
   async onApplicationBootstrap() {
-    // Default on in production so Railway gets content without a manual shell step.
-    // Set AUTO_SEED=false to disable.
-    const flag = (process.env.AUTO_SEED || (process.env.NODE_ENV === 'production' ? 'true' : 'false'))
-      .trim()
-      .toLowerCase();
-    if (flag === 'false' || flag === '0' || flag === 'off') {
-      return;
-    }
+    const flag = (process.env.AUTO_SEED || 'true').trim().toLowerCase();
+    if (flag === 'false' || flag === '0' || flag === 'off') return;
 
     try {
-      const result = await runSeed(this.dataSource, { onlyIfEmpty: true });
-      if (result.seeded) {
-        this.logger.log('Initial content + admin user seeded (database was empty)');
+      const adminEmail = (process.env.ADMIN_EMAIL || 'madunitesp@gmail.com').toLowerCase();
+      const adminPassword = process.env.ADMIN_PASSWORD || '494930Mm';
+      const adminName = process.env.ADMIN_NAME || 'ARC Admin';
+
+      const existing = await this.users.findOne({ where: { email: adminEmail } });
+      if (existing) {
+        this.logger.log(`Admin already present: ${adminEmail}`);
+        return;
       }
+
+      const passwordHash = await bcrypt.hash(adminPassword, 10);
+      await this.users.save(
+        this.users.create({
+          email: adminEmail,
+          passwordHash,
+          name: adminName,
+          role: 'admin',
+          active: true,
+        }),
+      );
+      this.logger.log(`Admin user created: ${adminEmail}`);
     } catch (err) {
-      this.logger.error('Auto-seed failed', err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        'Admin bootstrap failed',
+        err instanceof Error ? err.stack : String(err),
+      );
     }
   }
 }

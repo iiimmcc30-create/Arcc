@@ -1,4 +1,3 @@
-import { games as fallbackGames } from '@/data/mockData';
 import type { Lang } from '@/data/mockData';
 import { api } from '@/lib/api';
 import { useFetch } from '@/hooks/useFetch';
@@ -13,7 +12,7 @@ interface Props { lang: Lang; }
 export default function GamesSection({ lang }: Props) {
   const isRtl = lang === 'ar';
   const tr = t[lang];
-  const { data: games, loading } = useFetch(api.games, fallbackGames as any);
+  const { data: games, loading } = useFetch(api.games, []);
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
